@@ -24,9 +24,13 @@ class Config:
             return False
         return None
 
-    def __init__(self):
+	def __init__(self):
+
+        # Current Version
+        self.NATLAS_VERSION = Config.NATLAS_VERSION
+
         # url of server to get/submit work from/to
-        self.server = os.environ.get("NATLAS_SERVER_ADDRESS") or "http://127.0.0.1:5000"
+        self.server = os.environ.get('NATLAS_SERVER_ADDRESS') or 'http://127.0.0.1:5000'
 
         # Location of data directory
         self.data_dir = os.environ.get("NATLAS_DATA_DIR", "/data")
