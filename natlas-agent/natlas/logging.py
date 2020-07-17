@@ -38,3 +38,7 @@ def get_logger(name):
     logger.addHandler(get_file_handler(log_dir))
     logger.propagate = False
     return logger
+
+
+def get_plugin_logger(name):
+    return get_logger(f"Plugin::{name}")

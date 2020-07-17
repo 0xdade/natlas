@@ -1,3 +1,3 @@
-from .main import Whatweb
+from .main import WhatWeb
 
-__all__ = ["Whatweb"]
+__all__ = ["WhatWeb"]

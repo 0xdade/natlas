@@ -22,8 +22,8 @@ def validate_target(target, config):
     return True
 
 
-def get_conf_dir():
-    return os.path.join(conf.data_dir, "conf")
+def get_conf_dir(plugin_name):
+    return os.path.join(conf.data_dir, "conf", plugin_name)
 
 
 def get_services_path():
@@ -31,11 +31,15 @@ def get_services_path():
 
 
 def get_scan_dir(scan_id):
-    return os.path.join(conf.data_dir, "scans", f"natlas.{scan_id}")
+    path = os.path.join(conf.data_dir, "scans", f"natlas.{scan_id}")
+    Path(path).mkdir(parents=True, exist_ok=True)
+    return path
 
 
-def create_scan_dir(scan_id):
-    Path(get_scan_dir(scan_id)).mkdir(parents=True, exist_ok=True)
+def get_plugin_dir(scan_id, plugin_name):
+    path = os.path.join(get_scan_dir(scan_id), plugin_name)
+    Path(path).mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def delete_files(scan_id):

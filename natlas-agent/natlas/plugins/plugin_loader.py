@@ -2,26 +2,39 @@ import os
 import pkgutil
 from importlib import import_module
 from functools import reduce
+from typing import Generator
 from natlas.plugins.plugin import NatlasPlugin
+from natlas import logging
 
 
 class PluginLoader:
-    def __init__(self, additional_plugins=None):
+    def __init__(self, scan_config: dict):
         this_dir = os.path.dirname(__file__)
-        core_plugins_dir = os.path.join(this_dir, "core")
+        plugins = [os.path.join(this_dir, "core")]
+        self.config = scan_config
         self.loaded_modules = []
-        self.available_plugins = []
+        self.available_plugins = {}
         self.dependency_graph = {}
-        for pkg in pkgutil.iter_modules([core_plugins_dir]):
+        self.execution_order = []
+        self.logger = logging.get_logger("PluginLoader")
+        for pkg in pkgutil.iter_modules(plugins):
             imported = import_module("." + pkg.name, package="natlas.plugins.core")
             self.loaded_modules.append(imported)
         for plugin in NatlasPlugin.__subclasses__():
-            self.available_plugins.append(plugin.__plugin__)
-            self.dependency_graph[plugin.__plugin__] = set(plugin.__requires__)
-        self.dependency_graph = PluginLoader.toposort2(self.dependency_graph)
-        print("Execution order:\n" + "\n".join(self.dependency_graph))
+            if plugin.__plugin__ in self.config["plugins"]:
+                self.available_plugins[plugin.__plugin__] = plugin
+                self.dependency_graph[plugin.__plugin__] = set(plugin.__requires__)
+        deps = [i for i in PluginLoader.sort_graph(self.dependency_graph)]
+        for d in deps:
+            d = d.split()
+            self.execution_order.extend(d)
+        self.logger.info(f'Execution order: {" -> ".join(self.execution_order)}')
 
-    def toposort2(data):
+    def next_plugin(self) -> Generator:
+        for plug in self.execution_order:
+            yield self.available_plugins[plug](self.config)
+
+    def sort_graph(data: dict) -> Generator:
         """
             Topological sort a graph
             https://www.rosettacode.org/wiki/Topological_sort#Python

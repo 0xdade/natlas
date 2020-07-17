@@ -1,3 +1,6 @@
+from natlas.scan_result import ScanResult
+
+
 class NatlasPlugin:
 
     __plugin__ = ""
@@ -6,8 +9,8 @@ class NatlasPlugin:
     __description__ = ""
     __requires__ = []
 
-    def activate(self):
+    def __init__(self, plugin_config):
         raise NotImplementedError
 
-    def deactivate(self):
+    def run(self, result: ScanResult):
         raise NotImplementedError
