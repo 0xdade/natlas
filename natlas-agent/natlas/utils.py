@@ -1,7 +1,4 @@
 import ipaddress
-import os
-import shutil
-from pathlib import Path
 
 from natlas import logging
 from config import Config
@@ -20,47 +17,3 @@ def validate_target(target, config):
         utillogger.error(f"{target} is not a valid IP Address")
         return False
     return True
-
-
-def get_conf_dir(plugin_name):
-    return os.path.join(conf.data_dir, "conf", plugin_name)
-
-
-def get_services_path():
-    return os.path.join(get_conf_dir(), "natlas-services")
-
-
-def get_scan_dir(scan_id):
-    path = os.path.join(conf.data_dir, "scans", f"natlas.{scan_id}")
-    Path(path).mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def get_plugin_dir(scan_id, plugin_name):
-    path = os.path.join(get_scan_dir(scan_id), plugin_name)
-    Path(path).mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def delete_files(scan_id):
-    scan_dir = get_scan_dir(scan_id)
-    if os.path.isdir(scan_dir):
-        shutil.rmtree(scan_dir)
-
-
-def save_files(scan_id):
-    failroot = os.path.join(conf.data_dir, "scans", "failures")
-    scan_dir = get_scan_dir(scan_id)
-    Path(failroot).mkdir(parents=True, exist_ok=True)
-    if os.path.isdir(scan_dir):
-        src = scan_dir
-        dst = failroot
-        shutil.move(src, dst)
-
-
-def cleanup_files(scan_id, failed=False, saveFails=False):
-    utillogger.info(f"Cleaning up files for {scan_id}")
-    if saveFails and failed:
-        save_files(scan_id)
-    else:
-        delete_files(scan_id)

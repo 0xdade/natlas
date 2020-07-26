@@ -21,6 +21,9 @@ class Nmap(NatlasPlugin):
         self.scan_id = plugin_config["scan_id"]
         self.out_dir = utils.get_plugin_dir(self.scan_id, self.__plugin__)
         self.config = plugin_config["plugins"][self.__plugin__]
+        self.services_path = os.path.join(
+            utils.get_conf_dir(self.__plugin__), "natlas-services"
+        )
         self.command = self.build_command()
 
     def run(self, result: ScanResult = None):
@@ -30,10 +33,14 @@ class Nmap(NatlasPlugin):
 
     def build_command(self):
         outFiles = os.path.join(self.out_dir, f"nmap.{self.scan_id}")
-        servicepath = os.path.join(
-            utils.get_conf_dir(self.__plugin__), "natlas-services"
-        )
-        command = ["nmap", "--privileged", "-oA", outFiles, "--servicedb", servicepath]
+        command = [
+            "nmap",
+            "--privileged",
+            "-oA",
+            outFiles,
+            "--servicedb",
+            self.services_path,
+        ]
 
         commandDict = {
             "versionDetection": "-sV",

@@ -12,7 +12,7 @@ import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from urllib.parse import urljoin
 
-from natlas import logging
+from natlas.net import logger
 
 
 class NetworkClient:
@@ -31,7 +31,6 @@ class NetworkClient:
     # Common request configurations
     headers = {}
     session = None
-    logger = logging.get_logger("NetworkClient")
 
     def __init__(self, config):
         """
@@ -76,10 +75,10 @@ class NetworkClient:
                 req, timeout=self.request_timeout, verify=not self.ignore_ssl_warn
             )
         except requests.ConnectionError:
-            self.logger.warn(f"ConnectionError Connecting to {self.server}")
+            logger.warn(f"ConnectionError Connecting to {self.server}")
             return False
         except requests.Timeout:
-            self.logger.warn(f"Request timed out after {self.request_timeout} seconds.")
+            logger.warn(f"Request timed out after {self.request_timeout} seconds.")
             return False
 
     def _retry_check(self, resp):
@@ -95,7 +94,7 @@ class NetworkClient:
     def _sleep(self, attempt):
         jitter = random.randint(0, 1000) / 1000  # jitter to reduce chance of locking
         current_sleep = min(self.backoff_max, self.backoff_base * 2 ** attempt) + jitter
-        self.logger.warn(
+        logger.debug(
             f"Request failed. Waiting {current_sleep} seconds before retrying."
         )
         time.sleep(current_sleep)

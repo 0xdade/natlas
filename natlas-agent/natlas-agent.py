@@ -3,16 +3,15 @@
 import subprocess
 import time
 import os
-import argparse
 import hashlib
 import ipaddress
 import queue
-from pathlib import Path
 
-from natlas import logging, error_reporting, utils
+from natlas import logging, error_reporting, utils, argparse
 from config import Config
 from natlas.threadscan import ThreadScan
 from natlas.net import NatlasNetworkServices
+from natlas.fs import natlas_paths
 
 ERR = {"INVALIDTARGET": 1, "SCANTIMEOUT": 2, "DATANOTFOUND": 3, "INVALIDDATA": 4}
 
@@ -43,28 +42,9 @@ def add_targets_to_queue(target, q):
 
 def main():
 
-    PARSER_DESC = "Scan hosts and report data to a configured server. The server will reject your findings if they are deemed not in scope."
-    PARSER_EPILOG = "Report problems to https://github.com/natlas/natlas"
-    parser = argparse.ArgumentParser(
-        description=PARSER_DESC, epilog=PARSER_EPILOG, prog="natlas-agent"
-    )
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {config.NATLAS_VERSION}"
-    )
-    mutually_exclusive = parser.add_mutually_exclusive_group()
-    mutually_exclusive.add_argument(
-        "--target",
-        metavar="IPADDR",
-        help="An IP address or CIDR range to scan. e.g. 192.168.0.1, 192.168.0.1/24, 2001:db8:dead:dade:fade:cafe:babe:beef/128",
-        dest="target",
-    )
-    mutually_exclusive.add_argument(
-        "--target-file",
-        metavar="FILENAME",
-        help="A file of line separated target IP addresses or CIDR ranges",
-        dest="tfile",
-    )
-    args = parser.parse_args()
+    args = argparse.parse_args()
+
+    natlas_paths.initialize_paths()
 
     # Check if Nmap has required capabilities to run as a non-root user
     try:
@@ -85,11 +65,6 @@ def main():
         msg = f"Missing Nmap capabilities: {' '.join(missing_caps)}"
         global_logger.critical(msg)
         raise SystemExit(f"[!] {msg}")
-
-    required_dirs = ["scans", "logs", "conf"]
-    for directory in required_dirs:
-        req_dir = os.path.join(config.data_dir, directory)
-        Path(req_dir).mkdir(parents=True, exist_ok=True)
 
     autoScan = True
     if args.target or args.tfile:
