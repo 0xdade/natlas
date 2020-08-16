@@ -5,7 +5,7 @@ from libnmap.parser import NmapParser, NmapParserException
 from .script_parsers import get_parser, get_output_name
 
 
-def parse(out_dir, scan_id, logger):
+def parse_nmap(out_dir, scan_id, logger):
     result = {"raw_data": {}, "is_up": None, "port_count": None, "ports": {}}
     for ext in "nmap", "gnmap", "xml":
         path = os.path.join(out_dir, f"nmap.{scan_id}.{ext}")

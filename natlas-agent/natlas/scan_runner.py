@@ -1,15 +1,24 @@
 from config import Config
-from natlas.plugins import PluginLoader
-from natlas import ScanResult
+from natlas import PluginLoader, ScanResult
 
 
 class ScanRunner:
-    def __init__(self, scan_config: dict, natlas_config: Config):
-        self.pl = PluginLoader(scan_config)
+    def __init__(
+        self, plugin_loader: PluginLoader, scan_config: dict, natlas_config: Config
+    ):
+        self.config = scan_config
+        self.pl = plugin_loader
         self.result = ScanResult(scan_config, natlas_config)
+
+    def next_plugin(self):
+        for plug in self.pl.get_plugins():
+            if plug.__plugin__ in self.config["plugins"]:
+                yield plug()
 
     def run(self):
         self.result.start_scan()
-        for plug in self.pl.next_plugin():
+        for plug in self.next_plugin():
+            plug.init_scan(self.config)
             self.result.add_plugin(plug.__plugin__, plug.run(self.result))
         self.result.stop_scan()
+        return self.result
