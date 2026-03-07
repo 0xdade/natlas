@@ -1,6 +1,9 @@
 build:
     docker compose build django celery-worker celery-beat
 
+shell:
+    docker compose run -it --rm django python manage.py shell
+
 mypy:
     docker compose run --rm django mypy
 
