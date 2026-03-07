@@ -3,8 +3,9 @@
 import argparse
 
 from app import create_app
-from config import Config
 from migrations import migrator
+
+from config import Config
 
 parser_desc = """\
 This is a special app instance for developers to generate a new migration without \

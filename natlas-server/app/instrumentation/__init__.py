@@ -3,7 +3,6 @@ from urllib.parse import urlparse
 
 import flask
 import sentry_sdk
-from config import Config
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
@@ -12,6 +11,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from app.instrumentation.sentryio_middleware import SentryIoContextMiddleware
+from config import Config
 
 SERVICE_NAME = "natlas-server"
 template_span = threading.local()

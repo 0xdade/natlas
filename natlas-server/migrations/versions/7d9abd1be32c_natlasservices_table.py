@@ -11,6 +11,7 @@ import os
 
 import sqlalchemy as sa
 from alembic import op
+
 from config import Config
 
 # revision identifiers, used by Alembic.

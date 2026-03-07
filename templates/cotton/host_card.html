@@ -1,0 +1,13 @@
+<style>
+  .host-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+</style>
+
+<article class="host-card">
+  <c-host-meta :result="result" />
+  <c-host-raw-data :raw_data="result.raw_data" />
+</article>

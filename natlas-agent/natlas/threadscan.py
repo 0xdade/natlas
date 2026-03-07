@@ -5,10 +5,10 @@ import subprocess
 import threading
 from typing import Any, Literal
 
-from config import Config
 from libnmap.parser import NmapParser, NmapParserException
 from sentry_sdk import add_breadcrumb, capture_exception, push_scope
 
+from config import Config
 from natlas import logging, screenshots, utils
 from natlas.net import NatlasNetworkServices
 from natlas.scan_work import ManualScanWorkItem, ScanWorkItem
@@ -38,7 +38,7 @@ def command_builder(
     }
 
     for k, _v in agentConfig.items():
-        if agentConfig[k] and k in commandDict:
+        if _v and k in commandDict:
             command.append(commandDict[k].format(**agentConfig))
     if ipaddress.ip_network(target).version == 6:
         command.append("-6")

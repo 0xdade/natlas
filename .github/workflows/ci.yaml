@@ -15,7 +15,7 @@ on:
 env:
   DEFAULT_BRANCH: main
   IS_DEFAULT_BRANCH: ${{ github.ref == 'refs/heads/main' }}
-  PYTHON_VERSION: 3.11
+  PYTHON_VERSION: "3.13"
 
 jobs:
   pre-commit:
@@ -40,10 +40,33 @@ jobs:
       - name: Run pre-commit checks
         run: |
           pre-commit run --show-diff-on-failure --color=always --from-ref ${{ env.DEFAULT_BRANCH }} --to-ref HEAD
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run mypy
+        run: uv run mypy
+
   required:
     runs-on: ubuntu-latest
     needs:
       - pre-commit
+      - mypy
     steps:
       - name: Ensure all jobs required for CI pass
         run: |

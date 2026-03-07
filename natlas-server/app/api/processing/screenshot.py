@@ -3,10 +3,11 @@ import hashlib
 import os
 from io import BytesIO
 
-from config import S3Settings
 from flask import current_app
 from minio import Minio
 from PIL import Image, UnidentifiedImageError
+
+from config import S3Settings
 
 
 def is_valid_image(path: str | BytesIO) -> bool:

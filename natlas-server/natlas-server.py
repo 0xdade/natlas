@@ -11,8 +11,9 @@ from app.models import (
     User,
     UserInvitation,
 )
-from config import Config
 from sentry_sdk import capture_exception
+
+from config import Config
 
 config = Config()
 initialize_sentryio(config)

@@ -1,0 +1,48 @@
+{% load natlas %}
+<style>
+  .host-raw-data {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .host-raw-data summary {
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .host-raw-data summary::-webkit-details-marker { display: none; }
+
+  .host-raw-data summary::before {
+    content: "▶";
+    font-size: 0.6rem;
+    transition: transform 0.15s;
+  }
+
+  .host-raw-data[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  .host-raw-data pre {
+    padding: 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    border-top: 1px solid var(--color-border);
+  }
+</style>
+
+<details class="host-raw-data">
+  <summary>Raw data</summary>
+  <pre>{{ raw_data|pprint_json }}</pre>
+</details>

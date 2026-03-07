@@ -10,10 +10,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-from config import Config
 from natlas import error_reporting, logging, utils
 from natlas.net import NatlasNetworkServices
 from natlas.threadscan import ThreadScan
+
+from config import Config
 
 ERR = {"INVALIDTARGET": 1, "SCANTIMEOUT": 2, "DATANOTFOUND": 3, "INVALIDDATA": 4}
 

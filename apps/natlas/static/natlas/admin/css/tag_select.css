@@ -1,0 +1,77 @@
+/* Select2 overrides using Django admin CSS custom properties.
+   --body-bg, --body-fg, --border-color, etc. are automatically
+   redefined under prefers-color-scheme: dark by the admin theme,
+   so these rules adapt to dark mode with no extra media queries. */
+
+.select2-container--default .select2-selection--multiple {
+    background-color: var(--body-bg);
+    border-color: var(--border-color);
+    color: var(--body-fg);
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: var(--primary);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--darkened-bg);
+    border-color: var(--border-color);
+    color: var(--body-fg);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: var(--body-quiet-color);
+    border-color: var(--border-color);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    background-color: var(--delete-button-bg);
+    border-color: var(--delete-button-bg);
+    color: #fff;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+    color: var(--body-fg);
+}
+
+.select2-container--default .select2-selection--multiple .select2-search__field {
+    color: var(--body-fg);
+}
+
+.select2-container--default .select2-selection--multiple .select2-search__field::placeholder {
+    color: var(--body-quiet-color);
+}
+
+.select2-dropdown {
+    background-color: var(--body-bg);
+    border-color: var(--border-color);
+    color: var(--body-fg);
+}
+
+.select2-results,
+.select2-results__options {
+    background-color: var(--body-bg);
+    color: var(--body-fg);
+}
+
+.select2-search--dropdown .select2-search__field {
+    background-color: var(--darkened-bg);
+    border-color: var(--border-color);
+    color: var(--body-fg);
+}
+
+.select2-results__option {
+    background-color: var(--body-bg);
+    color: var(--body-fg);
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: var(--primary);
+    color: var(--primary-fg);
+}
+
+.select2-container--default .select2-results__option--selected,
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: var(--selected-bg);
+    color: var(--body-fg);
+}

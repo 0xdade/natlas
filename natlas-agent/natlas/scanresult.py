@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from config import Config
 from pydantic import BaseModel, Field
 
+from config import Config
 from natlas.screenshot_models import AquatoneScreenshot, VNCScreenshot
 
 

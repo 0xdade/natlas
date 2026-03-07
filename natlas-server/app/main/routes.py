@@ -1,5 +1,4 @@
 import elasticsearch
-from config import S3Settings
 from flask import (
     Response,
     current_app,
@@ -17,6 +16,7 @@ from app.auth.wrappers import is_authenticated
 from app.errors import NatlasSearchError
 from app.main import bp
 from app.main.pagination import build_pagination_urls, results_offset
+from config import S3Settings
 
 
 @bp.route("/")

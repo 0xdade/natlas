@@ -1,6 +1,5 @@
 import os
 
-import config
 from flask import Flask, flash, redirect, request, url_for
 from flask_login import AnonymousUserMixin, LoginManager, current_user
 from flask_mail import Mail
@@ -12,6 +11,7 @@ from sqlalchemy.orm import DeclarativeBase
 from webpack_manifest import webpack_manifest
 from werkzeug.wrappers.response import Response as wzResponse
 
+import config
 from app.elastic import ElasticInterface
 from app.instrumentation import initialize_opentelemetry
 from app.scope import ScopeManager

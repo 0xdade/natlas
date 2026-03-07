@@ -1,0 +1,37 @@
+<style>
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .pagination a {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-accent);
+  }
+
+  .pagination a:hover {
+    border-color: var(--color-accent);
+    text-decoration: none;
+  }
+</style>
+
+{% if page.has_other_pages %}
+<nav class="pagination" aria-label="Results pagination">
+  {% if page.has_previous %}
+    <a href="{% querystring page=page.previous_page_number %}">← Previous</a>
+  {% endif %}
+
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+
+  {% if page.has_next %}
+    <a href="{% querystring page=page.next_page_number %}">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}

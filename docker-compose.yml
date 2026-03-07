@@ -53,8 +53,8 @@ services:
   postgres:
     image: postgres:17.2
     restart: unless-stopped
-    expose:
-      - 5432
+    ports:
+      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgreql/data
     environment:
@@ -66,6 +66,18 @@ services:
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready" ]
       interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
       timeout: 5s
       retries: 5
 
@@ -96,6 +108,9 @@ services:
       - ./.otel-collector-dev.yml:/etc/otelcol/config.yaml
     networks:
       - backend
+    depends_on:
+      zipkin:
+        condition: service_healthy
 
   webpack:
     image: node:20-bookworm
@@ -158,6 +173,114 @@ services:
         condition: service_started
       maildev:
         condition: service_healthy
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=im-a-really-long-secret-please-dont-share-me
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=natlas
+      - POSTGRES_USER=natlas
+      - POSTGRES_PASSWORD=natlas-dev-password-do-not-use
+      - CELERY_BROKER_URL=redis://valkey:6379/0
+      - CELERY_RESULT_BACKEND=redis://valkey:6379/0
+      - EMAIL_HOST=maildev
+      - EMAIL_PORT=1025
+      - EMAIL_USE_TLS=False
+      - EMAIL_HOST_USER=natlas
+      - EMAIL_HOST_PASSWORD=natlas-dev-password-do-not-use
+      - DEFAULT_FROM_EMAIL=noreply@natlas.test
+      - OTEL_ENABLE=True
+      - OTEL_COLLECTOR=otel:4317
+    volumes:
+      - ./apps:/app/apps
+      - ./config:/app/config
+      - ./static:/app/static
+      - ./templates:/app/templates
+      - ./htmlcov:/app/htmlcov
+      - ./pyproject.toml:/app/pyproject.toml
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      otel:
+        condition: service_started
+      maildev:
+        condition: service_started
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    command: celery -A config.celery worker --loglevel=info
+    networks:
+      - backend
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=im-a-really-long-secret-please-dont-share-me
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=natlas
+      - POSTGRES_USER=natlas
+      - POSTGRES_PASSWORD=natlas-dev-password-do-not-use
+      - CELERY_BROKER_URL=redis://valkey:6379/0
+      - CELERY_RESULT_BACKEND=redis://valkey:6379/0
+    volumes:
+      - ./apps:/app/apps
+      - ./config:/app/config
+      - ./static:/app/static
+      - ./templates:/app/templates
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    command: celery -A config.celery beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    networks:
+      - backend
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=im-a-really-long-secret-please-dont-share-me
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=natlas
+      - POSTGRES_USER=natlas
+      - POSTGRES_PASSWORD=natlas-dev-password-do-not-use
+      - CELERY_BROKER_URL=redis://valkey:6379/0
+      - CELERY_RESULT_BACKEND=redis://valkey:6379/0
+    volumes:
+      - ./apps:/app/apps
+      - ./config:/app/config
+      - ./static:/app/static
+      - ./templates:/app/templates
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      django:
+        condition: service_started
 
   agent:
     build: natlas-agent

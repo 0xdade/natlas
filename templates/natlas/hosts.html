@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Hosts — Natlas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hosts-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .result-count {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .host-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 0;
+    color: var(--color-text-muted);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hosts-header">
+  <c-search-bar q="{{ q }}" error="{{ error|default:'' }}" />
+  {% if results.paginator.count %}
+    <p class="result-count">
+      {{ results.paginator.count }} host{{ results.paginator.count|pluralize }} found
+    </p>
+  {% endif %}
+</div>
+
+<div class="host-list">
+  {% for result in results.object_list %}
+    <c-host-card :result="result" />
+  {% empty %}
+    <div class="empty-state">
+      {% if q %}
+        No hosts match <strong>{{ q }}</strong>.
+      {% else %}
+        No hosts scanned yet.
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<c-pagination :page="results" />
+{% endblock %}

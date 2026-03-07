@@ -11,8 +11,9 @@ during initialization.
 import argparse
 
 from app import create_app
-from config import Config
 from migrations import migrator
+
+from config import Config
 
 parser_desc = """Perform database operations for Natlas.\
 It is best practice to take a backup of your database before you upgrade or downgrade, just in case something goes wrong.\

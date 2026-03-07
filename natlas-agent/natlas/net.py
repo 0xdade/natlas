@@ -6,10 +6,10 @@ import time
 from typing import Any, ClassVar, Literal
 
 import requests
-from config import Config
 from requests import Response
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+from config import Config
 from natlas import logging, utils
 from natlas.scanresult import ScanResult
 

@@ -1,0 +1,14 @@
+.git/
+.github/
+.venv/
+
+natlas-agent/
+natlas-server/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+.env
+*.log
+db.sqlite3
