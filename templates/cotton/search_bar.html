@@ -1,10 +1,13 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'djangoql/css/completion.css' %}" />
+<script src="{% static 'djangoql/js/completion.js' %}"></script>
 <style>
   .search-bar {
     display: flex;
     gap: 0.5rem;
   }
 
-  .search-bar input[type="text"] {
+  .search-bar textarea {
     flex: 1;
     padding: 0.5rem 0.75rem;
     background: var(--color-surface);
@@ -15,13 +18,14 @@
     font-size: 0.875rem;
     outline: none;
     transition: border-color 0.15s;
+    min-height: 2rem;
   }
 
-  .search-bar input[type="text"]:focus {
+  .search-bar textarea:focus {
     border-color: var(--color-accent);
   }
 
-  .search-bar input[type="text"].has-error {
+  .search-bar textarea.has-error {
     border-color: var(--color-down);
   }
 
@@ -45,22 +49,41 @@
     font-family: var(--font-mono);
     margin-top: 0.25rem;
   }
+  .djangoql-completion {
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
 </style>
 
 <form method="get" action="">
   <div class="search-bar">
-    <input
-      type="text"
-      name="q"
-      value="{{ q }}"
-      placeholder="DjangoQL search — e.g. target == &quot;10.0.0.1&quot;"
-      autocomplete="off"
-      spellcheck="false"
-      class="{% if error %}has-error{% endif %}"
-    >
+    <textarea type="text" name="q" value="{{ q }}" placeholder="Search e.g. target == &quot;10.0.0.1&quot;"
+      autocomplete="off" spellcheck="false" rows="2" class="{% if error %}has-error{% endif %}"></textarea>
     <button type="submit">Search</button>
   </div>
   {% if error %}
-    <p class="search-error">{{ error }}</p>
+  <p class="search-error">{{ error }}</p>
   {% endif %}
 </form>
+<script>
+  DjangoQL.DOMReady(function () {
+    new DjangoQL({
+      // either JS object with a result of DjangoQLSchema(MyModel).as_dict(),
+      // or an URL from which this information could be loaded asynchronously
+      introspections: {{ introspections| safe }},
+
+    selector: 'textarea[name=q]',
+
+    // optional, you can provide URL for Syntax Help link here.
+    // If not specified, Syntax Help link will be hidden.
+    syntaxHelp: null,
+
+    // optional, enable textarea auto-resize feature. If enabled,
+    // textarea will automatically grow its height when entered text
+    // doesn't fit, and shrink back when text is removed. The purpose
+    // of this is to see full search query without scrolling, could be
+    // helpful for really long queries.
+    autoResize: true
+      });
+    });
+</script>
