@@ -15,6 +15,7 @@ from apps.natlas.models.cycle import ScanCycle
 from apps.natlas.models.scan import LatestScanResult, ScanResult
 from apps.natlas.models.task import ScanTask
 from apps.natlas.services.cycle import advance_scan_cycle, create_scan_cycle
+from apps.natlas.tests.factories import build_realistic_scan, generate_raw_nmap
 
 # Fixed UUID for the mock dev agent so it is stable across restarts.
 _MOCK_AGENT_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -136,22 +137,29 @@ def mock_agent_tick() -> None:
         )
 
         scan_id = uuid6.uuid7()
-        raw_data = {
-            "ip": str(task.target),
-            "is_up": True,
-            "port_count": 0,
-            "scan_start": completed.isoformat(),
-            "scan_stop": completed.isoformat(),
-            "mock": True,
-        }
 
         scan_result = ScanResult.objects.create(
             scan_id=scan_id,
             target=task.target,
             agent=agent,
             scanned_at=completed,
-            raw_data=raw_data,
+            raw_data={"ip": str(task.target), "is_up": True, "mock": True},
         )
+
+        ports = build_realistic_scan(scan_result)
+        raw_nmap = generate_raw_nmap(str(task.target), ports)
+        ScanResult.objects.filter(pk=scan_result.pk).update(raw_nmap=raw_nmap)
+
+        raw_data = {
+            "ip": str(task.target),
+            "is_up": True,
+            "port_count": len(ports),
+            "scan_start": completed.isoformat(),
+            "scan_stop": completed.isoformat(),
+            "mock": True,
+        }
+        ScanResult.objects.filter(pk=scan_result.pk).update(raw_data=raw_data)
+
         LatestScanResult.objects.update_or_create(
             target=task.target,
             defaults={
@@ -159,6 +167,7 @@ def mock_agent_tick() -> None:
                 "agent": agent,
                 "scanned_at": completed,
                 "raw_data": raw_data,
+                "scan_result": scan_result,
             },
         )
         task.status = ScanTask.Status.COMPLETED

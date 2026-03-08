@@ -3,33 +3,6 @@
 # DO NOT USE THIS IN PRODUCTION! #
 ##################################
 services:
-  elastic:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
-    container_name: elastic
-    environment:
-      - node.name=elastic
-      - discovery.type=single-node
-      - cluster.name=docker-cluster
-      - bootstrap.memory_lock=true
-      - xpack.security.enabled=true
-      - "ELASTIC_PASSWORD=natlas-dev-password-do-not-use"
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - elastic:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
-    networks:
-      - backend
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -u elastic:natlas-dev-password-do-not-use -s -X GET http://localhost:9200/_cluster/health?pretty | grep status | grep -q '\\(green\\|yellow\\)'" ]
-      interval: 5s
-      timeout: 10s
-      retries: 24
-
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -112,72 +85,10 @@ services:
       zipkin:
         condition: service_healthy
 
-  webpack:
-    image: node:20-bookworm
-    command: /bin/bash -c '/usr/local/bin/yarn install && /usr/local/bin/yarn run webpack --mode development --watch'
-    networks:
-      - backend
-    volumes:
-      - ./natlas-server:/app
-      - node_modules:/app/node_modules
-      - html_assets:/app/static/dist
-    working_dir: /app
-
-  server:
-    build: natlas-server
-    command: flask run --host 0.0.0.0 --port 5001
-    ports:
-      - 5001:5001 # MacOS > Monterey binds AirPlayReceiver to 5000
-    networks:
-      - backend
-    environment:
-      # REMINDER: THIS IS DEVELOPMENT ONLY! YOU WILL GET PWNED IF YOU USE THIS CONFIG IN PRODUCTION.
-      - FLASK_ENV=development
-      - SECRET_KEY=im-a-really-long-secret-please-dont-share-me
-      - SERVER_NAME=localhost:5001
-      - TEMPLATES_AUTO_RELOAD=True
-      - ELASTICSEARCH_URL=http://elastic:9200
-      - ELASTIC_AUTH_ENABLE=True
-      - ELASTIC_USER=elastic
-      - ELASTIC_PASSWORD=natlas-dev-password-do-not-use
-      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg://natlas:natlas-dev-password-do-not-use@postgres/natlas
-      - S3_ENDPOINT=minio:9000
-      - S3_USE_TLS=0
-      - S3_BUCKET=natlas-screenshots
-      - S3_ACCESS_KEY=minio # doesn't matter, minio doesn't care about FOSS anymore and needs to be replaced
-      - S3_SECRET_KEY=natlas-dev-password-do-not-use # doesn't matter, minio doesn't care about FOSS anymore and needs to be replaced
-      - OTEL_ENABLE=False
-      - OTEL_COLLECTOR=otel:4317
-      - DB_AUTO_UPGRADE=True
-      - MAIL_SERVER=maildev
-      - MAIL_PORT=1025
-      - MAIL_USE_TLS=False
-      - MAIL_USERNAME=natlas
-      - MAIL_PASSWORD=natlas-dev-password-do-not-use
-      - MAIL_FROM=noreply@natlas.test
-    volumes:
-      - ./natlas-server:/server
-      - html_assets:/server/static/dist
-    links:
-      - elastic
-      - postgres
-      - minio
-    depends_on:
-      minio:
-        condition: service_healthy
-      elastic:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      webpack:
-        condition: service_started
-      maildev:
-        condition: service_healthy
-
   django:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Server.Dockerfile
       target: dev
     command: python manage.py runserver 0.0.0.0:8000
     ports:
@@ -187,7 +98,7 @@ services:
     environment:
       - DJANGO_DEBUG=True
       - DJANGO_SECRET_KEY=im-a-really-long-secret-please-dont-share-me
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,django
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=natlas
@@ -223,7 +134,7 @@ services:
   celery-worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Server.Dockerfile
       target: dev
     command: celery -A config.celery worker --loglevel=info
     networks:
@@ -253,7 +164,7 @@ services:
   celery-beat:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Server.Dockerfile
       target: dev
     command: celery -A config.celery beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     networks:
@@ -283,21 +194,22 @@ services:
         condition: service_started
 
   agent:
-    build: natlas-agent
+    build:
+      context: .
+      dockerfile: Agent.Dockerfile
     networks:
       - backend
+    env_file: agent/.env
     environment:
-      - NATLAS_SERVER_ADDRESS=http://server:5001
-      - NATLAS_SCAN_LOCAL=true
-    env_file: natlas-agent/.env
+      - NATLAS_SERVER_ADDRESS=http://django:8000
     cap_add:
       - NET_ADMIN
-    # security_opt:
-    #   - seccomp=./natlas-agent/chrome.json
+      - NET_RAW
     volumes:
-      - ./natlas-agent:/agent
-    links:
-      - server
+      - ./agent:/app/agent
+    depends_on:
+      django:
+        condition: service_started
 
 networks:
   backend:

@@ -60,7 +60,8 @@
 <body>
   <nav class="site-nav">
     <span class="brand">Natlas</span>
-    <a href="{% url 'hosts' %}">Hosts</a>
+    <a href="{% url 'web:dashboard' %}">Dashboard</a>
+    <a href="{% url 'web:hosts' %}">Hosts</a>
   </nav>
   <main>
     {% block content %}{% endblock %}

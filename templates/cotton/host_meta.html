@@ -56,7 +56,7 @@
 <div class="host-meta">
   <div class="host-ip">
     <span class="status-dot {% if result.raw_data.is_up %}up{% else %}down{% endif %}"></span>
-    {{ result.target }}
+    <a href="{% url 'web:host_detail' target=result.target %}">{{ result.target }}</a>
   </div>
 
   <div class="host-attrs">
@@ -72,7 +72,13 @@
 
     <div class="host-attr">
       <span class="host-attr-label">Agent</span>
-      <span class="host-attr-value">{{ result.agent|default:"—" }}</span>
+      <span class="host-attr-value">
+        {% if result.agent %}
+          <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ result.agent.agent_id }}%22">{{ result.agent }}</a>
+        {% else %}
+          —
+        {% endif %}
+      </span>
     </div>
   </div>
 </div>

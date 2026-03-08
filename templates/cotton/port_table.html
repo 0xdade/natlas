@@ -1,0 +1,180 @@
+<c-vars scan_result />
+<style>
+  .port-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .port-table th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .port-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    vertical-align: middle;
+  }
+
+  .port-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .port-number {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .port-row.expandable {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .port-row.expandable:hover td {
+    background: var(--color-bg-subtle, rgba(255,255,255,0.03));
+  }
+
+  .expand-indicator {
+    display: inline-block;
+    font-size: 0.65rem;
+    color: var(--color-text-muted);
+    margin-left: 0.4rem;
+    transition: transform 0.15s ease;
+    vertical-align: middle;
+  }
+
+  .port-row.open .expand-indicator {
+    transform: rotate(90deg);
+  }
+
+  .script-row {
+    display: none;
+  }
+
+  .script-row.visible {
+    display: table-row;
+  }
+
+  .script-detail-cell {
+    padding: 0 0.75rem 0.75rem !important;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .script-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-bg-subtle, rgba(0,0,0,0.15));
+    border-radius: 4px;
+    border-left: 2px solid var(--color-accent);
+  }
+
+  .script-entry {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+
+  .script-name {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .script-output {
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--color-text);
+  }
+
+  .script-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    background: var(--color-bg-subtle, rgba(255,255,255,0.06));
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    float: right;
+  }
+
+  .empty-state {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: 1rem 0;
+  }
+</style>
+
+{% if scan_result and scan_result.ports.all %}
+  <table class="port-table" data-expandable>
+    <thead>
+      <tr>
+        <th>Port</th>
+        <th>Protocol</th>
+        <th>Service</th>
+        <th>Product / Version</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for port in scan_result.ports.all %}
+      <tr class="port-row{% if port.scripts.all %} expandable{% endif %}"
+          {% if port.scripts.all %}data-scripts-row="scripts-{{ forloop.counter }}"{% endif %}>
+        <td class="port-number">{{ port.port_number }}</td>
+        <td>{{ port.protocol }}</td>
+        <td>{{ port.service_name|default:"—" }}</td>
+        <td>
+          {{ port.service_product|default:"" }}
+          {% if port.service_version %}
+            <span style="color:var(--color-text-muted)">{{ port.service_version }}</span>
+          {% endif %}
+          {% if not port.service_product and not port.service_version %}—{% endif %}
+          {% if port.scripts.all %}
+            <span class="script-badge">
+              ▶ {{ port.scripts.count }} script{{ port.scripts.count|pluralize }}
+              <span class="expand-indicator">›</span>
+            </span>
+          {% endif %}
+        </td>
+      </tr>
+      {% if port.scripts.all %}
+      <tr class="script-row" id="scripts-{{ forloop.counter }}">
+        <td class="script-detail-cell" colspan="4">
+          <div class="script-list">
+            {% for script in port.scripts.all %}
+            <div class="script-entry">
+              <span class="script-name">{{ script.name }}</span>
+              <span class="script-output">{{ script.output }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+  <script>
+    document.querySelector('[data-expandable]').addEventListener('click', function(e) {
+      var row = e.target.closest('.port-row.expandable');
+      if (!row) return;
+      var targetId = row.dataset.scriptsRow;
+      var detail = document.getElementById(targetId);
+      if (!detail) return;
+      var open = row.classList.toggle('open');
+      detail.classList.toggle('visible', open);
+    });
+  </script>
+{% else %}
+  <p class="empty-state">No structured port data yet.</p>
+{% endif %}

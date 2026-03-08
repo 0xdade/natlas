@@ -57,8 +57,8 @@
 
 <form method="get" action="">
   <div class="search-bar">
-    <textarea type="text" name="q" value="{{ q }}" placeholder="Search e.g. target == &quot;10.0.0.1&quot;"
-      autocomplete="off" spellcheck="false" rows="2" class="{% if error %}has-error{% endif %}"></textarea>
+    <textarea type="text" name="q" placeholder="Search e.g. target == &quot;10.0.0.1&quot;"
+      autocomplete="off" spellcheck="false" rows="2" class="{% if error %}has-error{% endif %}">{{ q }}</textarea>
     <button type="submit">Search</button>
   </div>
   {% if error %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ scan.target }} — {{ scan.scanned_at|date:"Y-m-d H:i" }} — Natlas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .scan-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .scan-detail-ip {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .scan-detail-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .meta-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .meta-value {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+
+  .section-heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .back-link {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{% url 'web:host_detail' target=target %}">← {{ target }}</a>
+
+<div class="scan-detail-header">
+  <div class="scan-detail-ip">{{ scan.target }}</div>
+</div>
+
+<div class="scan-detail-meta">
+  <div class="meta-item">
+    <span class="meta-label">Scanned at</span>
+    <span class="meta-value">{{ scan.scanned_at|date:"Y-m-d H:i:s" }}</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Scan ID</span>
+    <span class="meta-value">{{ scan.scan_id }}</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Agent</span>
+    <span class="meta-value">
+      {% if scan.agent %}
+        <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ scan.agent.agent_id }}%22">{{ scan.agent }}</a>
+      {% else %}
+        —
+      {% endif %}
+    </span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Open ports</span>
+    <span class="meta-value">{{ scan.raw_data.port_count|default:"0" }}</span>
+  </div>
+</div>
+
+<p class="section-heading">Ports</p>
+<c-port-table :scan_result="scan" />
+{% endblock %}

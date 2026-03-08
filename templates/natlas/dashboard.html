@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Natlas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .stat-row:last-child {
+    border-bottom: none;
+  }
+
+  .stat-label {
+    color: var(--color-text-muted);
+  }
+
+  .stat-value {
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+
+  .stat-value.up { color: var(--color-up); }
+  .stat-value.accent { color: var(--color-accent); }
+
+  .progress-wrap {
+    margin: 0.75rem 0;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .section-heading {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--color-text);
+  }
+
+  .empty-state {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: 0.5rem 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="section-heading">Dashboard</h1>
+
+<div class="dashboard-grid">
+
+  {# Agents #}
+  <div class="card">
+    <div class="card-title">Agents</div>
+    <div class="stat-row">
+      <span class="stat-label">Total</span>
+      <span class="stat-value">{{ status.agents.total }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Active</span>
+      <span class="stat-value up">{{ status.agents.active }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Recently seen (15m)</span>
+      <span class="stat-value accent">{{ status.agents.recently_seen }}</span>
+    </div>
+  </div>
+
+  {# Active Cycle #}
+  <div class="card">
+    <div class="card-title">Active Cycle</div>
+    {% if status.active_cycle %}
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {{ status.active_cycle.progress_pct }}%"></div>
+        </div>
+        <div class="progress-label">
+          {{ status.active_cycle.ips_queued|floatformat:0 }} / {{ status.active_cycle.total_ips }} IPs queued
+          ({{ status.active_cycle.progress_pct }}%)
+        </div>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Started</span>
+        <span class="stat-value">{{ status.active_cycle.started_at|date:"M d, H:i" }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Tasks pending</span>
+        <span class="stat-value">{{ status.active_cycle.tasks.pending }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Tasks claimed</span>
+        <span class="stat-value">{{ status.active_cycle.tasks.claimed }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Tasks completed</span>
+        <span class="stat-value up">{{ status.active_cycle.tasks.completed }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Tasks failed</span>
+        <span class="stat-value">{{ status.active_cycle.tasks.failed }}</span>
+      </div>
+      {% if status.active_cycle.eta_scan_complete %}
+      <div class="stat-row">
+        <span class="stat-label">ETA complete</span>
+        <span class="stat-value accent">{{ status.active_cycle.eta_scan_complete|date:"M d, H:i" }}</span>
+      </div>
+      {% endif %}
+    {% else %}
+      <p class="empty-state">No active scan cycle.</p>
+    {% endif %}
+  </div>
+
+  {# Last Completed Cycle #}
+  <div class="card">
+    <div class="card-title">Last Completed Cycle</div>
+    {% if status.last_completed_cycle %}
+      <div class="stat-row">
+        <span class="stat-label">Total IPs</span>
+        <span class="stat-value">{{ status.last_completed_cycle.total_ips }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Started</span>
+        <span class="stat-value">{{ status.last_completed_cycle.started_at|date:"M d, H:i" }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Completed</span>
+        <span class="stat-value">{{ status.last_completed_cycle.completed_at|date:"M d, H:i" }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Duration</span>
+        <span class="stat-value accent">{{ status.last_completed_cycle.duration_seconds|floatformat:0 }}s</span>
+      </div>
+    {% else %}
+      <p class="empty-state">No completed cycles yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

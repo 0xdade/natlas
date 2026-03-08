@@ -1,5 +1,6 @@
 from djangoql.admin import DjangoQLSearchMixin
-from djangoql.schema import DjangoQLSchema
+from djangoql.schema import DjangoQLSchema, StrField
+from netfields import InetAddressField
 
 
 class IndexedFieldsSchema(DjangoQLSchema):
@@ -9,6 +10,11 @@ class IndexedFieldsSchema(DjangoQLSchema):
     Relational fields (FK, M2M, O2O) are always included because they
     carry implicit FK indexes on their join columns.
     """
+
+    def get_field_cls(self, field):  # type: ignore[override]
+        if isinstance(field, InetAddressField):
+            return StrField
+        return super().get_field_cls(field)
 
     def get_fields(self, model):  # type: ignore[override]
         result = []

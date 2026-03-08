@@ -2,6 +2,8 @@
 dev = [
   "django-debug-toolbar~=5.0",
   "django-stubs[compatible-mypy]~=5.2",
+  "factory-boy~=3.3",
+  "faker~=33.0",
   "mypy~=1.14",
   "pytest-cov~=6.0",
   "pytest-django~=4.10",
@@ -131,3 +133,6 @@ ban-relative-imports = "all"
 
 [tool.uv]
 package = false
+
+[tool.uv.workspace]
+members = ["agent"]

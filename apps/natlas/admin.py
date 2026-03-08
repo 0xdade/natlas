@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from django import forms
-from django.contrib import admin
-from django.http import HttpRequest
+from django.contrib import admin, messages
+from django.http import HttpRequest, HttpResponse
 
 from apps.core.admin import DjangoQLAdminMixin
 from apps.natlas.models import LatestScanResult, ScanCycle, ScanResult, ScopeItem, Tag
@@ -169,6 +169,42 @@ class AgentAdmin(DjangoQLAdminMixin, admin.ModelAdmin[Agent]):
         "updated_at",
         "last_seen",
     ]
+    actions = ["regenerate_token"]
+
+    def save_model(
+        self, request: HttpRequest, obj: Agent, form: object, change: bool
+    ) -> None:
+        if not change:
+            token = Agent.generate_token()
+            obj.set_token(token)
+            request._agent_token = token  # type: ignore[attr-defined]
+        super().save_model(request, obj, form, change)
+
+    def response_add(
+        self, request: HttpRequest, obj: Agent, post_url_continue: str | None = None
+    ) -> HttpResponse:
+        token: str | None = getattr(request, "_agent_token", None)
+        if token:
+            self.message_user(
+                request,
+                f"Agent created. Copy this token now — it will not be shown again: "
+                f"{obj.agent_id}:{token}",
+                level=messages.WARNING,
+            )
+        return super().response_add(request, obj, post_url_continue)
+
+    @admin.action(description="Regenerate token")
+    def regenerate_token(self, request: HttpRequest, queryset: object) -> None:
+        for agent in queryset:  # type: ignore[union-attr]
+            token = Agent.generate_token()
+            agent.set_token(token)
+            agent.save(update_fields=["token_hash", "updated_at"])
+            self.message_user(
+                request,
+                f"New token for {agent} — copy now, will not be shown again: "
+                f"{agent.agent_id}:{token}",
+                level=messages.WARNING,
+            )
 
 
 @admin.register(ScanCycle)

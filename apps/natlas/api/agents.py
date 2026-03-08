@@ -8,6 +8,7 @@ from ninja import Router
 
 from apps.natlas.api.auth import AgentAuth
 from apps.natlas.models.agent import Agent
+from apps.natlas.models.port import Port, Script
 from apps.natlas.models.scan import LatestScanResult, ScanResult
 from apps.natlas.models.task import ScanTask
 from apps.natlas.schemas.agents import (
@@ -16,6 +17,7 @@ from apps.natlas.schemas.agents import (
     SubmitAckSchema,
     SubmitResultSchema,
 )
+from apps.natlas.services.nmap_parser import parse_xml
 
 router = Router(auth=AgentAuth())
 
@@ -81,7 +83,23 @@ def submit_result(
             agent=agent,
             scanned_at=completed,
             raw_data=payload.data,
+            raw_nmap=payload.raw_nmap,
         )
+
+        for p in parse_xml(payload.raw_xml):
+            port = Port.objects.create(
+                scan_result=scan_result,
+                port_number=p.port_number,
+                protocol=p.protocol,
+                state=p.state,
+                service_name=p.service_name,
+                service_product=p.service_product,
+                service_version=p.service_version,
+                service_extra=p.service_extra,
+            )
+            for s in p.scripts:
+                Script.objects.create(port=port, name=s.name, output=s.output)
+
         LatestScanResult.objects.update_or_create(
             target=task.target,
             defaults={
@@ -89,6 +107,7 @@ def submit_result(
                 "agent": agent,
                 "scanned_at": completed,
                 "raw_data": payload.data,
+                "scan_result": scan_result,
             },
         )
         task.status = ScanTask.Status.COMPLETED

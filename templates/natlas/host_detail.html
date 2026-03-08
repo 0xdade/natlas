@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ latest.target }} — Natlas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .host-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .host-detail-ip {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-dot.up   { background: var(--color-up); }
+  .status-dot.down { background: var(--color-down); }
+
+  .host-detail-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .meta-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .meta-value {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+
+  .section-heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .history-table th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .history-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    vertical-align: top;
+  }
+
+  .history-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .empty-state {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: 1rem 0;
+  }
+
+  .back-link {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{% url 'web:hosts' %}">← Hosts</a>
+
+<div class="host-detail-header">
+  <div class="host-detail-ip">
+    <span class="status-dot {% if latest.raw_data.is_up %}up{% else %}down{% endif %}"></span>
+    {{ latest.target }}
+  </div>
+</div>
+
+<div class="host-detail-meta">
+  <div class="meta-item">
+    <span class="meta-label">Last scanned</span>
+    <span class="meta-value">{{ latest.scanned_at|date:"Y-m-d H:i:s" }}</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Agent</span>
+    <span class="meta-value">
+      {% if latest.agent %}
+        <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ latest.agent.agent_id }}%22">{{ latest.agent }}</a>
+      {% else %}
+        —
+      {% endif %}
+    </span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Open ports</span>
+    <span class="meta-value">{{ latest.raw_data.port_count|default:"0" }}</span>
+  </div>
+</div>
+
+{# Ports #}
+<p class="section-heading">Ports</p>
+<c-port-table :scan_result="latest.scan_result" />
+
+{# History #}
+<p class="section-heading">Scan history</p>
+{% if history %}
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Agent</th>
+        <th>Ports</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for scan in history %}
+      <tr>
+        <td><a href="{% url 'web:scan_detail' target=latest.target scan_id=scan.scan_id %}">{{ scan.scanned_at|date:"Y-m-d H:i:s" }}</a></td>
+        <td>
+          {% if scan.agent %}
+            <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ scan.agent.agent_id }}%22">{{ scan.agent }}</a>
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>{{ scan.raw_data.port_count|default:"0" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="empty-state">No scan history.</p>
+{% endif %}
+{% endblock %}

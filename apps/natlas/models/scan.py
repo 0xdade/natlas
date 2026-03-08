@@ -3,6 +3,8 @@ from __future__ import annotations
 import typing
 
 import uuid6
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.utils import timezone
 from netfields import InetAddressField
@@ -40,6 +42,8 @@ class ScanResult(ScanData):
     the history of a specific host.
     """
 
+    raw_nmap = models.TextField(blank=True, default="")
+
     class Meta:
         constraints: typing.ClassVar = [
             models.UniqueConstraint(
@@ -49,6 +53,10 @@ class ScanResult(ScanData):
         ]
         indexes: typing.ClassVar = [
             models.Index(fields=["target", "scanned_at"]),
+            GinIndex(
+                SearchVector("raw_nmap", config="english"),
+                name="scanresult_raw_nmap_fts_idx",
+            ),
         ]
 
 
@@ -59,6 +67,13 @@ class LatestScanResult(ScanData):
     agent submission. scan_id matches the corresponding ScanResult row so
     callers can jump directly to the full history entry.
     """
+
+    scan_result = models.ForeignKey(
+        "ScanResult",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="latest",
+    )
 
     class Meta:
         constraints: typing.ClassVar = [
