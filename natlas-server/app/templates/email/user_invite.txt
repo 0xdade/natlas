@@ -1,5 +1,0 @@
-You've been invited to Natlas! Use the link below to set a password. This link will expire in 48 hours.
-
-{{ url }}
-
-If you did not want this invitation, simply disregard it.
