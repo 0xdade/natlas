@@ -26,5 +26,5 @@ CMD ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--workers", "2"]
 FROM base AS dev
 
 WORKDIR /workspace
-RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --group dev
+RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --all-groups --all-packages
 WORKDIR /app

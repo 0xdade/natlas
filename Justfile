@@ -1,3 +1,6 @@
+sync:
+    uv sync --all-groups --all-packages
+
 build:
     docker compose build django celery-worker celery-beat agent
 

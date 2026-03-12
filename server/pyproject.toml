@@ -4,10 +4,7 @@ dev = [
   "django-stubs[compatible-mypy]~=5.2",
   "factory-boy~=3.3",
   "faker~=33.0",
-  "mypy~=1.14",
-  "pytest-cov~=6.0",
-  "pytest-django~=4.10",
-  "pytest~=8.3"
+  "pytest-django~=4.10"
 ]
 
 [project]

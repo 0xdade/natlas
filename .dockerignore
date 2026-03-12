@@ -1,14 +1,30 @@
+# Version control
 .git/
 .github/
-.venv/
 
+# Old reference code (not needed in builds)
 natlas-agent/
 natlas-server/
 
+# Virtual envs
+.venv/
+
+# Env files (secrets)
+**/.env
+
+# Python artifacts
 __pycache__/
 *.py[cod]
 *.egg-info/
 
-.env
-*.log
-db.sqlite3
+# Test / lint artifacts
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Docs
+*.md
+LICENSE

@@ -1,3 +1,10 @@
+[dependency-groups]
+dev = [
+  "mypy~=1.14",
+  "pytest-cov~=6.0",
+  "pytest~=8.3"
+]
+
 [tool.ruff]
 
 [tool.ruff.lint]
