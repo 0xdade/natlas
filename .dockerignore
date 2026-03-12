@@ -2,10 +2,6 @@
 .git/
 .github/
 
-# Old reference code (not needed in builds)
-natlas-agent/
-natlas-server/
-
 # Virtual envs
 .venv/
 
