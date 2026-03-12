@@ -115,12 +115,7 @@ services:
       - OTEL_ENABLE=True
       - OTEL_COLLECTOR=otel:4317
     volumes:
-      - ./apps:/app/apps
-      - ./config:/app/config
-      - ./static:/app/static
-      - ./templates:/app/templates
-      - ./htmlcov:/app/htmlcov
-      - ./pyproject.toml:/app/pyproject.toml
+      - ./server:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -151,10 +146,7 @@ services:
       - CELERY_BROKER_URL=redis://valkey:6379/0
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
     volumes:
-      - ./apps:/app/apps
-      - ./config:/app/config
-      - ./static:/app/static
-      - ./templates:/app/templates
+      - ./server:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -181,10 +173,7 @@ services:
       - CELERY_BROKER_URL=redis://valkey:6379/0
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
     volumes:
-      - ./apps:/app/apps
-      - ./config:/app/config
-      - ./static:/app/static
-      - ./templates:/app/templates
+      - ./server:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -205,6 +194,10 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    ulimits:
+      nofile:
+        soft: 10000
+        hard: 10000
     volumes:
       - ./agent:/app/agent
     depends_on:

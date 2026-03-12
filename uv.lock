@@ -8,8 +8,8 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "natlas",
     "natlas-agent",
+    "natlas-server",
 ]
 
 [[package]]
@@ -691,9 +691,20 @@ wheels = [
 ]
 
 [[package]]
-name = "natlas"
+name = "natlas-agent"
+version = "0.1.0"
+source = { virtual = "agent" }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "httpx", specifier = "~=0.28" }]
+
+[[package]]
+name = "natlas-server"
 version = "0.6.12"
-source = { virtual = "." }
+source = { virtual = "server" }
 dependencies = [
     { name = "celery", extra = ["redis"] },
     { name = "django" },
@@ -764,17 +775,6 @@ dev = [
     { name = "pytest-cov", specifier = "~=6.0" },
     { name = "pytest-django", specifier = "~=4.10" },
 ]
-
-[[package]]
-name = "natlas-agent"
-version = "0.1.0"
-source = { virtual = "agent" }
-dependencies = [
-    { name = "httpx" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "httpx", specifier = "~=0.28" }]
 
 [[package]]
 name = "netaddr"

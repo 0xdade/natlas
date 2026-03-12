@@ -1,5 +1,5 @@
 build:
-    docker compose build django celery-worker celery-beat
+    docker compose build django celery-worker celery-beat agent
 
 shell:
     docker compose run -it --rm django python manage.py shell

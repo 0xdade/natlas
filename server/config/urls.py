@@ -1,10 +1,10 @@
+from apps.core.renderers import DjangoTemplateRenderer
+from apps.natlas.web import router as natlas_router
 from django.conf import settings
 from django.contrib import admin
 from django.urls import URLPattern, URLResolver, include, path
 from ninja import NinjaAPI
 
-from apps.core.renderers import DjangoTemplateRenderer
-from apps.natlas.web import router as natlas_router
 from config.api import api
 
 web = NinjaAPI(

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 import uuid
 import xml.etree.ElementTree as ET
@@ -10,7 +9,7 @@ from agent import config
 from agent.client import ServerClient
 from agent.scanner import run as scan
 
-log_level = logging.DEBUG if os.environ.get("NATLAS_DEBUG") == "1" else logging.INFO
+log_level = logging.DEBUG if config.DEBUG == "1" else logging.INFO
 logging.basicConfig(
     level=log_level,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
