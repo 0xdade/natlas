@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 import httpx
 
@@ -37,6 +38,8 @@ class ServerClient:
         raw_nmap: str,
         raw_xml: str,
         raw_gnmap: str,
+        scan_start: datetime,
+        scan_stop: datetime,
     ) -> None:
         """Submit scan results for a claimed task."""
         resp = self._http.post(
@@ -48,6 +51,8 @@ class ServerClient:
                 "raw_nmap": raw_nmap,
                 "raw_xml": raw_xml,
                 "raw_gnmap": raw_gnmap,
+                "scan_start": scan_start.isoformat(),
+                "scan_stop": scan_stop.isoformat(),
             },
         )
         resp.raise_for_status()

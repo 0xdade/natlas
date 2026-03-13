@@ -84,6 +84,8 @@ def main() -> None:
                     raw_nmap=output.nmap,
                     raw_xml=output.xml,
                     raw_gnmap=output.gnmap,
+                    scan_start=output.scan_start,
+                    scan_stop=output.scan_stop,
                 )
                 log.info("Submitted results for %s (task %s)", target, task_id)
             except Exception:

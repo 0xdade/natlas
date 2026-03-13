@@ -82,6 +82,8 @@ def submit_result(
             target=task.target,
             agent=agent,
             scanned_at=completed,
+            scan_start=payload.scan_start,
+            scan_stop=payload.scan_stop,
             raw_data=payload.data,
             raw_nmap=payload.raw_nmap,
         )
@@ -106,6 +108,8 @@ def submit_result(
                 "scan_id": payload.scan_id,
                 "agent": agent,
                 "scanned_at": completed,
+                "scan_start": payload.scan_start,
+                "scan_stop": payload.scan_stop,
                 "raw_data": payload.data,
                 "scan_result": scan_result,
             },

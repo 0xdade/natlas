@@ -5,7 +5,8 @@ import subprocess
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 from agent import config
@@ -18,6 +19,8 @@ class ScanOutput:
     nmap: str  # standard text output (.nmap)
     xml: str  # XML output (.xml)
     gnmap: str  # grepable output (.gnmap)
+    scan_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    scan_stop: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 def _masscan(target: str, tmpdir: str) -> list[tuple[str, str]]:
@@ -147,6 +150,8 @@ def run(target: str, scan_id: uuid.UUID) -> ScanOutput:
 
     Otherwise: nmap handles the full scan directly (default).
     """
+    scan_start = datetime.now(timezone.utc)
+
     with tempfile.TemporaryDirectory() as tmpdir:
         base = str(Path(tmpdir) / f"scan_{scan_id}")
 
@@ -154,8 +159,18 @@ def run(target: str, scan_id: uuid.UUID) -> ScanOutput:
             log.info("Using masscan pre-flight for %s", target)
             discovered = _masscan(target, tmpdir)
             if not discovered:
-                return ScanOutput(nmap="", xml="", gnmap="")
+                return ScanOutput(
+                    nmap="",
+                    xml="",
+                    gnmap="",
+                    scan_start=scan_start,
+                    scan_stop=datetime.now(timezone.utc),
+                )
             port_spec = _build_port_spec(discovered)
-            return _nmap(target, base, extra_args=["-Pn", "-p", port_spec])
+            output = _nmap(target, base, extra_args=["-Pn", "-p", port_spec])
+        else:
+            output = _nmap(target, base)
 
-        return _nmap(target, base)
+    output.scan_start = scan_start
+    output.scan_stop = datetime.now(timezone.utc)
+    return output

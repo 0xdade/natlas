@@ -29,6 +29,8 @@ class ScanData(models.Model):
         related_name="%(class)s_set",
     )
     scanned_at = models.DateTimeField(default=timezone.now, db_index=True)
+    scan_start = models.DateTimeField(null=True, db_index=True)
+    scan_stop = models.DateTimeField(null=True, db_index=True)
     raw_data = models.JSONField()
 
     class Meta:
