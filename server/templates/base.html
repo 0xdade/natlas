@@ -49,6 +49,13 @@
       letter-spacing: -0.01em;
     }
 
+    nav.site-nav .version {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
     main {
       max-width: 1100px;
       margin: 0 auto;
@@ -62,6 +69,8 @@
     <span class="brand">Natlas</span>
     <a href="{% url 'web:dashboard' %}">Dashboard</a>
     <a href="{% url 'web:hosts' %}">Hosts</a>
+    {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+    <span class="version">{{ git_version }}</span>
   </nav>
   <main>
     {% block content %}{% endblock %}

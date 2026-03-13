@@ -2,25 +2,25 @@ sync:
     uv sync --all-groups --all-packages
 
 build:
-    docker compose build django celery-worker celery-beat agent
+    docker compose build
 
 shell:
-    docker compose run -it --rm django python manage.py shell
+    docker compose run -it --rm server python manage.py shell
 
 mypy:
-    docker compose run --rm django mypy
+    docker compose run --rm server mypy
 
 makemigrations:
-    docker compose run --rm django python manage.py makemigrations
+    docker compose run --rm server python manage.py makemigrations
 
 createsuperuser:
-    docker compose run --rm django python manage.py createsuperuser
+    docker compose run --rm server python manage.py createsuperuser
 
 migrate:
-    docker compose run --rm django python manage.py migrate
+    docker compose run --rm server python manage.py migrate
 
 test *args:
-    docker compose run --rm django pytest {{args}}
+    docker compose run --rm server pytest {{args}}
 
 coverage:
     open htmlcov/index.html

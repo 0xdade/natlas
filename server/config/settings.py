@@ -13,6 +13,9 @@ if _sentry_dsn := os.environ.get("SENTRY_DSN"):
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
+
+GIT_VERSION: str = os.environ.get("GIT_COMMIT", "unknown")
+
 # SECURITY WARNING: set a strong secret key in production via DJANGO_SECRET_KEY
 SECRET_KEY: str = os.environ.get(
     "DJANGO_SECRET_KEY",
@@ -99,6 +102,7 @@ TEMPLATES: list[dict[str, object]] = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.core.context_processors.version",
             ],
         },
     },
