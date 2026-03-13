@@ -3,25 +3,36 @@
 # DO NOT USE THIS IN PRODUCTION! #
 ##################################
 services:
-  minio:
-    image: minio/minio:latest
-    container_name: minio
+  garage:
+    image: dxflrs/garage:v1.0.1
     ports:
-      - "9000:9000" # S3 API
-      - "9001:9001" # MinIO Console
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: natlas-dev-password-do-not-use
+      - "3900:3900" # S3 API
+      - "3901:3901" # Admin API
     volumes:
-      - minio_data:/data
+      - ./dev/.garage-dev.toml:/etc/garage.toml
+      - garage_data:/var/lib/garage
     networks:
       - backend
-    command: server /data --console-address ":9001"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "curl", "-f", "http://localhost:3901/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  garage-init:
+    image: alpine:3.21
+    networks:
+      - backend
+    environment:
+      - S3_BUCKET=natlas
+      - S3_ACCESS_KEY_ID=natlas-dev-key-id-do-not-use
+      - S3_SECRET_ACCESS_KEY=natlas-dev-secret-key-do-not-use
+    volumes:
+      - ./dev/.garage-init.sh:/garage-init.sh:ro
+    depends_on:
+      garage:
+        condition: service_healthy
+    command: ["sh", "-c", "apk add -q --no-cache curl jq && sh /garage-init.sh"]
 
   postgres:
     image: postgres:17.2
@@ -85,7 +96,7 @@ services:
       zipkin:
         condition: service_healthy
 
-  django:
+  server:
     build:
       context: .
       dockerfile: Server.Dockerfile
@@ -114,6 +125,11 @@ services:
       - DEFAULT_FROM_EMAIL=noreply@natlas.test
       - OTEL_ENABLE=True
       - OTEL_COLLECTOR=otel:4317
+      - S3_ENDPOINT=http://garage:3900
+      - S3_REGION=us-east-1
+      - S3_BUCKET=natlas
+      - S3_ACCESS_KEY_ID=natlas-dev-key-id-do-not-use
+      - S3_SECRET_ACCESS_KEY=natlas-dev-secret-key-do-not-use
     volumes:
       - ./server:/app
     depends_on:
@@ -179,7 +195,7 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      django:
+      server:
         condition: service_started
 
   agent:
@@ -190,7 +206,7 @@ services:
       - backend
     env_file: agent/.env
     environment:
-      - NATLAS_SERVER_ADDRESS=http://django:8000
+      - NATLAS_SERVER_ADDRESS=http://server:8000
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -201,7 +217,7 @@ services:
     volumes:
       - ./agent:/app/agent
     depends_on:
-      django:
+      server:
         condition: service_started
 
 networks:
@@ -209,8 +225,5 @@ networks:
 
 
 volumes:
-  elastic:
-  node_modules:
-  html_assets:
   postgres-data:
-  minio_data:
+  garage_data:
