@@ -55,14 +55,14 @@
 
 <div class="host-meta">
   <div class="host-ip">
-    <span class="status-dot {% if result.raw_data.is_up %}up{% else %}down{% endif %}"></span>
+    <span class="status-dot {% if result.is_up %}up{% else %}down{% endif %}"></span>
     <a href="{% url 'web:host_detail' target=result.target %}">{{ result.target }}</a>
   </div>
 
   <div class="host-attrs">
     <div class="host-attr">
       <span class="host-attr-label">Ports</span>
-      <span class="host-attr-value">{{ result.raw_data.port_count|default:"—" }}</span>
+      <span class="host-attr-value">{{ result.port_count|default:"—" }}</span>
     </div>
 
     <div class="host-attr">

@@ -46,6 +46,14 @@ class ScanResult(ScanData):
 
     raw_nmap = models.TextField(blank=True, default="")
 
+    @property
+    def port_count(self) -> int:
+        return self.ports.count()  # type: ignore[attr-defined]
+
+    @property
+    def is_up(self) -> bool:
+        return self.ports.filter(state="open").exists()  # type: ignore[attr-defined]
+
     class Meta:
         constraints: typing.ClassVar = [
             models.UniqueConstraint(
@@ -76,6 +84,18 @@ class LatestScanResult(ScanData):
         null=True,
         related_name="latest",
     )
+
+    @property
+    def port_count(self) -> int:
+        if self.scan_result_id is None:
+            return 0
+        return self.scan_result.ports.count()  # type: ignore[attr-defined]
+
+    @property
+    def is_up(self) -> bool:
+        if self.scan_result_id is None:
+            return False
+        return self.scan_result.ports.filter(state="open").exists()  # type: ignore[attr-defined]
 
     class Meta:
         constraints: typing.ClassVar = [

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-
 import httpx
 
 from agent import config
+from agent.plugins import ScanContext
 
 
 class ServerClient:
@@ -29,35 +27,23 @@ class ServerClient:
         resp.raise_for_status()
         return resp.json()
 
-    def submit(  # noqa: PLR0913 (we'll come back to this)
-        self,
-        *,
-        task_id: int,
-        scan_id: uuid.UUID,
-        data: dict,
-        raw_nmap: str,
-        raw_xml: str,
-        raw_gnmap: str,
-        scan_start: datetime,
-        scan_stop: datetime,
-    ) -> None:
+    def submit(self, ctx: ScanContext) -> None:
         """Submit scan results for a claimed task."""
         resp = self._http.post(
             "/api/agents/submit/",
             json={
-                "task_id": task_id,
-                "scan_id": str(scan_id),
-                "data": data,
-                "raw_nmap": raw_nmap,
-                "raw_xml": raw_xml,
-                "raw_gnmap": raw_gnmap,
-                "scan_start": scan_start.isoformat(),
-                "scan_stop": scan_stop.isoformat(),
+                "task_id": ctx.task_id,
+                "scan_id": str(ctx.scan_id),
+                "raw_nmap": ctx.nmap.text,
+                "raw_xml": ctx.nmap.xml,
+                "raw_gnmap": ctx.nmap.gnmap,
+                "scan_start": ctx.scan_start.isoformat(),
+                "scan_stop": ctx.scan_stop.isoformat(),
             },
         )
         resp.raise_for_status()
 
-    def fail(self, *, task_id: int) -> None:
+    def fail(self, task_id: int) -> None:
         """Mark a claimed task as failed."""
         resp = self._http.post("/api/agents/fail/", json={"task_id": task_id})
         resp.raise_for_status()

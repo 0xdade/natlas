@@ -1,0 +1,39 @@
+exclude = [
+  "**/*__pycache__",
+  "**/*egg-info",
+  "**/docs",
+  "**/tests",
+  "**/venv"
+]
+interfaces = []
+source_roots = [
+  "."
+]
+
+[[modules ]]
+depends_on = []
+path = "manage"
+
+[[modules ]]
+depends_on = ["apps.core"]
+path = "apps.auto_admin"
+
+[[modules ]]
+depends_on = [] # Core must never depend on anything, else it's no longer core.
+path = "apps.core"
+
+[[modules ]]
+depends_on = ["apps.core"]
+path = "apps.custom_user"
+
+[[modules ]]
+depends_on = []
+path = "apps.instrumentation"
+
+[[modules ]]
+depends_on = ["apps.core"]
+path = "apps.natlas"
+
+[[modules ]]
+depends_on = ["apps.core", "apps.natlas"]
+path = "config"

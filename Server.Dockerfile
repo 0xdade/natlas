@@ -15,10 +15,13 @@ RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --no-dev --package natlas-serv
 WORKDIR /app
 COPY server/ ./
 
-EXPOSE 8000
-
 ARG GIT_COMMIT=dev
 ENV GIT_COMMIT=$GIT_COMMIT
+
+# Collect static files for production, disable DEBUG mode so that local builds don't break
+RUN DJANGO_SECRET_KEY=collectstatic DJANGO_DEBUG=False python manage.py collectstatic --noinput
+
+EXPOSE 8000
 
 CMD ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--workers", "2"]
 

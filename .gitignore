@@ -33,6 +33,9 @@ htmlcov/
 .coverage.*
 coverage.xml
 
+# WhiteNoise collected static files
+staticfiles/
+
 # Celery
 celerybeat-schedule
 celerybeat.pid

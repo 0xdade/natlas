@@ -116,7 +116,7 @@
 
 <div class="host-detail-header">
   <div class="host-detail-ip">
-    <span class="status-dot {% if latest.raw_data.is_up %}up{% else %}down{% endif %}"></span>
+    <span class="status-dot {% if latest.is_up %}up{% else %}down{% endif %}"></span>
     {{ latest.target }}
   </div>
 </div>
@@ -138,7 +138,7 @@
   </div>
   <div class="meta-item">
     <span class="meta-label">Open ports</span>
-    <span class="meta-value">{{ latest.raw_data.port_count|default:"0" }}</span>
+    <span class="meta-value">{{ latest.port_count }}</span>
   </div>
 </div>
 
@@ -168,7 +168,7 @@
             —
           {% endif %}
         </td>
-        <td>{{ scan.raw_data.port_count|default:"0" }}</td>
+        <td>{{ scan.port_count }}</td>
       </tr>
       {% endfor %}
     </tbody>

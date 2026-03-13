@@ -143,22 +143,12 @@ def mock_agent_tick() -> None:
             target=task.target,
             agent=agent,
             scanned_at=completed,
-            raw_data={"ip": str(task.target), "is_up": True, "mock": True},
+            raw_data={},
         )
 
         ports = build_realistic_scan(scan_result)
         raw_nmap = generate_raw_nmap(str(task.target), ports)
         ScanResult.objects.filter(pk=scan_result.pk).update(raw_nmap=raw_nmap)
-
-        raw_data = {
-            "ip": str(task.target),
-            "is_up": True,
-            "port_count": len(ports),
-            "scan_start": completed.isoformat(),
-            "scan_stop": completed.isoformat(),
-            "mock": True,
-        }
-        ScanResult.objects.filter(pk=scan_result.pk).update(raw_data=raw_data)
 
         LatestScanResult.objects.update_or_create(
             target=task.target,
@@ -166,7 +156,7 @@ def mock_agent_tick() -> None:
                 "scan_id": scan_id,
                 "agent": agent,
                 "scanned_at": completed,
-                "raw_data": raw_data,
+                "raw_data": {},
                 "scan_result": scan_result,
             },
         )

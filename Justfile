@@ -4,6 +4,9 @@ sync:
 build:
     docker compose build
 
+bash:
+    docker compose run -it --rm server bash
+
 shell:
     docker compose run -it --rm server python manage.py shell
 
@@ -21,6 +24,9 @@ migrate:
 
 test *args:
     docker compose run --rm server pytest {{args}}
+
+collectstatic:
+    docker compose run --rm server python manage.py collectstatic --noinput
 
 coverage:
     open htmlcov/index.html

@@ -28,7 +28,8 @@ dependencies = [
   "opentelemetry-sdk~=1.27",
   "psycopg[binary]~=3.2",
   "sentry-sdk[django]~=2.0",
-  "uuid6~=2025.0"
+  "uuid6~=2025.0",
+  "whitenoise[brotli]~=6.0"
 ]
 name = "natlas-server"
 requires-python = ">=3.13"

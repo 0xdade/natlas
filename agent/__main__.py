@@ -3,30 +3,16 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-import xml.etree.ElementTree as ET
 
 from agent import config
 from agent.client import ServerClient
-from agent.scanner import run as scan
+from agent.runner import run as scan
 
-log_level = logging.DEBUG if config.DEBUG == "1" else logging.INFO
 logging.basicConfig(
-    level=log_level,
+    level=logging.DEBUG if config.DEBUG else logging.INFO,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
 )
 log = logging.getLogger(__name__)
-
-
-def _count_open_ports(raw_xml: str) -> int:
-    try:
-        root = ET.fromstring(raw_xml)
-        return sum(
-            1
-            for port in root.findall("host/ports/port")
-            if (s := port.find("state")) is not None and s.get("state") == "open"
-        )
-    except ET.ParseError:
-        return -1
 
 
 def main() -> None:
@@ -59,34 +45,24 @@ def main() -> None:
             log.info("Claimed task %s: scanning %s", task_id, target)
 
             try:
-                output = scan(target, scan_id)
+                ctx = scan(target, scan_id, task_id)
             except Exception:
                 log.exception("Scan failed for %s (task %s)", target, task_id)
                 try:
-                    client.fail(task_id=task_id)
+                    client.fail(task_id)
                 except Exception:
                     log.exception("Failed to report task %s as failed", task_id)
                 continue
 
-            port_count = _count_open_ports(output.xml)
             log.info(
                 "Scan complete for %s (task %s): %d open port(s)",
                 target,
                 task_id,
-                port_count,
+                ctx.nmap.open_port_count,
             )
 
             try:
-                client.submit(
-                    task_id=task_id,
-                    scan_id=scan_id,
-                    data={"ip": target, "is_up": True, "port_count": port_count},
-                    raw_nmap=output.nmap,
-                    raw_xml=output.xml,
-                    raw_gnmap=output.gnmap,
-                    scan_start=output.scan_start,
-                    scan_stop=output.scan_stop,
-                )
+                client.submit(ctx)
                 log.info("Submitted results for %s (task %s)", target, task_id)
             except Exception:
                 log.exception("Failed to submit results for task %s", task_id)

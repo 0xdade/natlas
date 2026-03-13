@@ -129,7 +129,7 @@ class TestAgentSubmit:
         agent, token = _make_agent()
         r = client.post(
             "/submit/",
-            json={"task_id": 999999, "scan_id": str(uuid.uuid4()), "data": {}},
+            json={"task_id": 999999, "scan_id": str(uuid.uuid4())},
             headers=_auth(agent, token),
         )
         assert r.status_code == 404
@@ -141,7 +141,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent1, token1)).json()
         r = client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"], "data": {}},
+            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
             headers=_auth(agent2, token2),
         )
         assert r.status_code == 404
@@ -152,7 +152,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         r = client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"], "data": {}},
+            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
             headers=_auth(agent, token),
         )
         assert r.status_code == 200
@@ -164,7 +164,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"], "data": {}},
+            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
             headers=_auth(agent, token),
         )
         assert LatestScanResult.objects.count() == 1
@@ -175,7 +175,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"], "data": {}},
+            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
             headers=_auth(agent, token),
         )
         task = ScanTask.objects.get(pk=claim["task_id"])
@@ -188,7 +188,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"], "data": {}},
+            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
             headers=_auth(agent, token),
         )
         task = ScanTask.objects.get(pk=claim["task_id"])
@@ -269,7 +269,6 @@ class TestAgentFullCycle:
                 json={
                     "task_id": claim["task_id"],
                     "scan_id": claim["scan_id"],
-                    "data": {"ip": claim["target"]},
                 },
                 headers=auth,
             )
@@ -305,7 +304,6 @@ class TestAgentFullCycle:
                 json={
                     "task_id": claim["task_id"],
                     "scan_id": claim["scan_id"],
-                    "data": {},
                 },
                 headers=auth,
             )

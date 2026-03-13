@@ -104,9 +104,7 @@ class ScanResultFactory(factory.django.DjangoModelFactory):
     target = factory.Faker("ipv4_private")
     agent = factory.SubFactory(AgentFactory)
     scanned_at = factory.LazyFunction(now)
-    raw_data = factory.LazyAttribute(
-        lambda o: {"ip": str(o.target), "is_up": True, "mock": True}
-    )
+    raw_data = {}
     raw_nmap = ""
 
 
@@ -141,9 +139,7 @@ class LatestScanResultFactory(factory.django.DjangoModelFactory):
     target = factory.Faker("ipv4_private")
     agent = factory.SubFactory(AgentFactory)
     scanned_at = factory.LazyFunction(now)
-    raw_data = factory.LazyAttribute(
-        lambda o: {"ip": str(o.target), "is_up": True, "mock": True}
-    )
+    raw_data = {}
     scan_result = factory.SubFactory(ScanResultFactory)
 
 

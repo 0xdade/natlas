@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
 
 from ninja import Schema
 
@@ -20,7 +19,6 @@ class SubmitResultSchema(Schema):
 
     task_id: int
     scan_id: uuid.UUID
-    data: dict[str, Any]
     raw_nmap: str = ""
     raw_xml: str = ""
     raw_gnmap: str = ""

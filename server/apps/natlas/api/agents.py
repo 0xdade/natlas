@@ -77,6 +77,7 @@ def submit_result(
             return 404, {"detail": "Task not found or not owned by this agent"}
 
         completed = now()
+        raw_data = {"raw_xml": payload.raw_xml, "raw_gnmap": payload.raw_gnmap}
         scan_result = ScanResult.objects.create(
             scan_id=payload.scan_id,
             target=task.target,
@@ -84,7 +85,7 @@ def submit_result(
             scanned_at=completed,
             scan_start=payload.scan_start,
             scan_stop=payload.scan_stop,
-            raw_data=payload.data,
+            raw_data=raw_data,
             raw_nmap=payload.raw_nmap,
         )
 
@@ -110,7 +111,7 @@ def submit_result(
                 "scanned_at": completed,
                 "scan_start": payload.scan_start,
                 "scan_stop": payload.scan_stop,
-                "raw_data": payload.data,
+                "raw_data": raw_data,
                 "scan_result": scan_result,
             },
         )

@@ -42,7 +42,8 @@ def hosts(
         LatestScanResult.objects.filter(
             Exists(Port.objects.filter(scan_result=OuterRef("scan_result")))
         )
-        .select_related("agent")
+        .select_related("agent", "scan_result")
+        .prefetch_related("scan_result__ports")
         .order_by("-scanned_at")
     )
     error: str | None = None
@@ -93,6 +94,7 @@ def host_detail(
     history = list(
         ScanResult.objects.filter(target=target)
         .select_related("agent")
+        .prefetch_related("ports")
         .order_by("-scanned_at")
     )
     return 200, HostDetailResponseSchema(latest=latest, history=history)
