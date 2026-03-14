@@ -175,7 +175,7 @@ class TestAgentSubmit:
             headers=_auth(agent, token),
         )
         assert r.status_code == 200
-        assert ScanResult.objects.filter(scan_id=claim["scan_id"]).exists()
+        assert ScanResult.objects.filter(id=claim["scan_id"]).exists()
 
     def test_submit_upserts_latest_scan_result(self, settings) -> None:  # type: ignore[type-arg]
         _enqueue_all(settings)
@@ -212,7 +212,7 @@ class TestAgentSubmit:
         )
         task = ScanTask.objects.get(pk=claim["task_id"])
         assert task.scan_result is not None
-        assert str(task.scan_result.scan_id) == claim["scan_id"]
+        assert str(task.scan_result.id) == claim["scan_id"]
 
 
 # ---------------------------------------------------------------------------

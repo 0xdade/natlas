@@ -28,7 +28,7 @@ class ScanTask(TimeStampedModel):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
-    task_id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     cycle = models.ForeignKey(
         "ScanCycle",
         on_delete=models.CASCADE,

@@ -42,7 +42,7 @@ def hosts(
     latest_ids = Subquery(
         ScanResult.objects.order_by("target", "-scanned_at")
         .distinct("target")
-        .values("scan_id")
+        .values("id")
     )
 
     # Step 2: filter those latest scans to only hosts with open ports, then search.
@@ -50,7 +50,7 @@ def hosts(
         Port.objects.filter(scan_result=OuterRef("pk"), state="open")
     )
     qs: Any = (
-        ScanResult.objects.filter(scan_id__in=latest_ids)
+        ScanResult.objects.filter(id__in=latest_ids)
         .filter(has_open_port)
         .select_related("agent")
         .annotate(open_port_count=Count("ports", filter=Q(ports__state="open")))
@@ -121,6 +121,6 @@ def scan_detail(
     scan = get_object_or_404(
         ScanResult.objects.select_related("agent").prefetch_related("ports__scripts"),
         target=target,
-        scan_id=scan_id,
+        id=scan_id,
     )
     return 200, ScanDetailResponseSchema(scan=scan, target=target)

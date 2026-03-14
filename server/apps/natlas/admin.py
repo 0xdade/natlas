@@ -273,11 +273,11 @@ _JSON_FORMATTER = HtmlFormatter(
 class ScanDataAdmin(DjangoQLAdminMixin, admin.ModelAdmin):  # type: ignore[type-arg]
     """Shared read-only config for ScanResult and LatestScanResult."""
 
-    list_display = ["scan_id", "target", "agent", "scanned_at"]
+    list_display = ["id", "target", "agent", "scanned_at"]
     list_filter = ["agent"]
-    search_fields = ["target", "scan_id"]
+    search_fields = ["target", "id"]
     readonly_fields = [
-        "scan_id",
+        "id",
         "target",
         "agent",
         "scanned_at",
@@ -288,7 +288,7 @@ class ScanDataAdmin(DjangoQLAdminMixin, admin.ModelAdmin):  # type: ignore[type-
         "raw_data_pretty",
     ]
     fieldsets = [
-        ("Scan", {"fields": ["scan_id", "target", "agent"]}),
+        ("Scan", {"fields": ["id", "target", "agent"]}),
         ("Timestamps", {"fields": ["scanned_at", "scan_start", "scan_stop"]}),
         ("Results", {"fields": ["port_count", "is_up"]}),
         (
@@ -320,7 +320,7 @@ class ScanDataAdmin(DjangoQLAdminMixin, admin.ModelAdmin):  # type: ignore[type-
 
 class ScanResultAdmin(ScanDataAdmin):
     fieldsets = [
-        ("Scan", {"fields": ["scan_id", "target", "agent"]}),
+        ("Scan", {"fields": ["id", "target", "agent"]}),
         ("Timestamps", {"fields": ["scanned_at", "scan_start", "scan_stop"]}),
         ("Results", {"fields": ["port_count", "is_up", "raw_nmap"]}),
         ("Raw Data", {"fields": ["raw_data_pretty"], "classes": ["collapse"]}),

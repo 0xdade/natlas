@@ -79,13 +79,13 @@
   </div>
   <div class="meta-item">
     <span class="meta-label">Scan ID</span>
-    <span class="meta-value">{{ scan.scan_id }}</span>
+    <span class="meta-value">{{ scan.id }}</span>
   </div>
   <div class="meta-item">
     <span class="meta-label">Agent</span>
     <span class="meta-value">
       {% if scan.agent %}
-        <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ scan.agent.agent_id }}%22">{{ scan.agent }}</a>
+        <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ scan.agent.id }}%22">{{ scan.agent }}</a>
       {% else %}
         —
       {% endif %}

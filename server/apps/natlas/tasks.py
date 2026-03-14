@@ -139,7 +139,7 @@ def mock_agent_tick() -> None:
         scan_id = uuid6.uuid7()
 
         scan_result = ScanResult.objects.create(
-            scan_id=scan_id,
+            id=scan_id,
             target=task.target,
             agent=agent,
             scanned_at=completed,

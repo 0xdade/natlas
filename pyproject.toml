@@ -46,6 +46,10 @@ select = [
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"config.settings".msg = "Use django.conf.settings"
+"django.contrib.auth.models.User".msg = "Use custom_auth.models.User"
+
 [tool.uv]
 package = false
 

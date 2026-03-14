@@ -15,11 +15,11 @@ from apps.natlas.models.agent import Agent
 class ScanResult(models.Model):
     """Append-only scan history. One row per completed scan.
 
-    Query by scan_id for a direct fetch, or by (target, scanned_at) for
+    Query by id for a direct fetch, or by (target, scanned_at) for
     the history of a specific host.
     """
 
-    scan_id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     target = InetAddressField(store_prefix_length=False, db_index=True)
     agent = models.ForeignKey(
         Agent,

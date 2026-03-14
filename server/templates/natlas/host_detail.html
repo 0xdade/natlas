@@ -130,7 +130,7 @@
     <span class="meta-label">Agent</span>
     <span class="meta-value">
       {% if latest.agent %}
-        <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ latest.agent.agent_id }}%22">{{ latest.agent }}</a>
+        <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ latest.agent.id }}%22">{{ latest.agent }}</a>
       {% else %}
         —
       {% endif %}
@@ -160,10 +160,10 @@
     <tbody>
       {% for scan in history %}
       <tr>
-        <td><a href="{% url 'web:scan_detail' target=latest.target scan_id=scan.scan_id %}">{{ scan.scanned_at|date:"Y-m-d H:i:s" }}</a></td>
+        <td><a href="{% url 'web:scan_detail' target=latest.target scan_id=scan.id %}">{{ scan.scanned_at|date:"Y-m-d H:i:s" }}</a></td>
         <td>
           {% if scan.agent %}
-            <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ scan.agent.agent_id }}%22">{{ scan.agent }}</a>
+            <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ scan.agent.id }}%22">{{ scan.agent }}</a>
           {% else %}
             —
           {% endif %}

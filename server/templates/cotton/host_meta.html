@@ -74,7 +74,7 @@
       <span class="host-attr-label">Agent</span>
       <span class="host-attr-value">
         {% if result.agent %}
-          <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ result.agent.agent_id }}%22">{{ result.agent }}</a>
+          <a href="{% url 'web:hosts' %}?q=agent%20%3D%20%22{{ result.agent.id }}%22">{{ result.agent }}</a>
         {% else %}
           —
         {% endif %}

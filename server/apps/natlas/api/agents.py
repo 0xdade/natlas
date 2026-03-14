@@ -81,7 +81,7 @@ def submit_result(
 
         completed = now()
         scan_result = ScanResult.objects.create(
-            scan_id=payload.scan_id,
+            id=payload.scan_id,
             target=task.target,
             agent=agent,
             scanned_at=completed,

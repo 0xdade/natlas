@@ -30,7 +30,7 @@ def _get_recent_stats(hours: int) -> RecentStatsSchema:
     )
 
     agg = ScanResult.objects.filter(scanned_at__gte=since).aggregate(
-        total_scans=Count("scan_id"),
+        total_scans=Count("id"),
         hosts_with_open_ports=Count("target", distinct=True, filter=has_open_port),
     )
     total_open_ports = Port.objects.filter(
