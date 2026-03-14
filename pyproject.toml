@@ -23,6 +23,8 @@ select = [
   "B",
   # flake8-comprehensions
   "C4",
+  # mccabe complexity
+  "C90",
   # pyflakes
   "F",
   # flynt
@@ -49,6 +51,9 @@ ban-relative-imports = "all"
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "config.settings".msg = "Use django.conf.settings"
 "django.contrib.auth.models.User".msg = "Use custom_auth.models.User"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 16
 
 [tool.uv]
 package = false
