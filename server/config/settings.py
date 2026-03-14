@@ -62,14 +62,14 @@ INSTALLED_APPS: list[str] = _DJANGO_APPS + _THIRD_PARTY_APPS + _FIRST_PARTY_APPS
 
 AUTH_USER_MODEL: str = "custom_auth.User"
 
-_oidc_disable_local_auth: bool = (
+OIDC_DISABLE_LOCAL_AUTH: bool = (
     os.environ.get("OIDC_DISABLE_LOCAL_AUTH", "False") == "True"
 )
 AUTHENTICATION_BACKENDS: list[str] = [
     # OIDC — active alongside local auth. Inert until OIDC_RP_CLIENT_ID is set.
     "apps.custom_auth.oidc.OIDCBackend",
 ]
-if not _oidc_disable_local_auth:
+if not OIDC_DISABLE_LOCAL_AUTH:
     # Local username/password. Disabled in deployments that enforce IdP-only login.
     AUTHENTICATION_BACKENDS.insert(0, "django.contrib.auth.backends.ModelBackend")
 
@@ -142,6 +142,7 @@ TEMPLATES: list[dict[str, object]] = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.version",
+                "apps.core.context_processors.oidc",
             ],
         },
     },
