@@ -45,6 +45,7 @@ _THIRD_PARTY_APPS: list[str] = [
     "django_celery_beat",
     "django_cotton",
     "djangoql",
+    "mozilla_django_oidc",
     "netfields",
     "waffle",
 ]
@@ -60,6 +61,32 @@ _FIRST_PARTY_APPS: list[str] = [
 INSTALLED_APPS: list[str] = _DJANGO_APPS + _THIRD_PARTY_APPS + _FIRST_PARTY_APPS
 
 AUTH_USER_MODEL: str = "custom_auth.User"
+
+_oidc_disable_local_auth: bool = (
+    os.environ.get("OIDC_DISABLE_LOCAL_AUTH", "False") == "True"
+)
+AUTHENTICATION_BACKENDS: list[str] = [
+    # OIDC — active alongside local auth. Inert until OIDC_RP_CLIENT_ID is set.
+    "apps.custom_auth.oidc.OIDCBackend",
+]
+if not _oidc_disable_local_auth:
+    # Local username/password. Disabled in deployments that enforce IdP-only login.
+    AUTHENTICATION_BACKENDS.insert(0, "django.contrib.auth.backends.ModelBackend")
+
+# OIDC — all values come from env vars; leave unset in dev to use local auth only.
+# Point these at your IdP's discovery document endpoints.
+OIDC_RP_CLIENT_ID: str = os.environ.get("OIDC_RP_CLIENT_ID", "")
+OIDC_RP_CLIENT_SECRET: str = os.environ.get("OIDC_RP_CLIENT_SECRET", "")
+OIDC_OP_AUTHORIZATION_ENDPOINT: str = os.environ.get(
+    "OIDC_OP_AUTHORIZATION_ENDPOINT", ""
+)
+OIDC_OP_TOKEN_ENDPOINT: str = os.environ.get("OIDC_OP_TOKEN_ENDPOINT", "")
+OIDC_OP_USER_ENDPOINT: str = os.environ.get("OIDC_OP_USER_ENDPOINT", "")
+OIDC_OP_JWKS_ENDPOINT: str = os.environ.get("OIDC_OP_JWKS_ENDPOINT", "")
+OIDC_RP_SIGN_ALGO: str = os.environ.get("OIDC_RP_SIGN_ALGO", "RS256")
+# Where to send users after a successful OIDC login / logout.
+LOGIN_REDIRECT_URL: str = "/"
+LOGOUT_REDIRECT_URL: str = "/"
 
 # Prefix prepended to the user-visible token string for each API key type.
 # Override in deployment settings to match your application's brand/namespace.

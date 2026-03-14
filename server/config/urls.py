@@ -18,6 +18,7 @@ web.add_router("", natlas_router)
 
 urlpatterns: list[URLPattern | URLResolver] = [
     path("admin/", admin.site.urls),
+    path("oidc/", include("mozilla_django_oidc.urls")),
     path("api/", api.urls),
     path("", web.urls),
 ]

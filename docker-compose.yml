@@ -76,6 +76,64 @@ services:
     networks:
       - backend
 
+  authentik-db:
+    image: postgres:17.2
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "authentik"
+      POSTGRES_PASSWORD: "authentik-dev-password-do-not-use"
+      POSTGRES_DB: "authentik"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  authentik:
+    image: ghcr.io/goauthentik/server:2024.12.3
+    command: server
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      AUTHENTIK_SECRET_KEY: "authentik-dev-secret-key-do-not-use-in-prod"
+      AUTHENTIK_REDIS__HOST: valkey
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik-dev-password-do-not-use
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_LOG_LEVEL: info
+    networks:
+      - backend
+    depends_on:
+      authentik-db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2024.12.3
+    command: worker
+    restart: unless-stopped
+    environment:
+      AUTHENTIK_SECRET_KEY: "authentik-dev-secret-key-do-not-use-in-prod"
+      AUTHENTIK_REDIS__HOST: valkey
+      AUTHENTIK_POSTGRESQL__HOST: authentik-db
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik-dev-password-do-not-use
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+    networks:
+      - backend
+    depends_on:
+      authentik-db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
   zipkin:
     image: openzipkin/zipkin-slim:3.1.0
     ports:
@@ -130,6 +188,17 @@ services:
       - S3_BUCKET=natlas
       - S3_ACCESS_KEY_ID=natlas-dev-key-id-do-not-use
       - S3_SECRET_ACCESS_KEY=natlas-dev-secret-key-do-not-use
+      # OIDC — uncomment and fill in after creating an application in Authentik.
+      # NOTE: run manage.py runserver locally (not in this container) when testing
+      # OIDC so that localhost:9000 resolves from both your browser and Django.
+      # All four endpoint URLs come from http://localhost:9000/application/o/<slug>/
+      #- OIDC_RP_CLIENT_ID=
+      #- OIDC_RP_CLIENT_SECRET=
+      #- OIDC_OP_AUTHORIZATION_ENDPOINT=http://localhost:9000/application/o/<slug>/authorize/
+      #- OIDC_OP_TOKEN_ENDPOINT=http://localhost:9000/application/o/<slug>/token/
+      #- OIDC_OP_USER_ENDPOINT=http://localhost:9000/application/o/<slug>/userinfo/
+      #- OIDC_OP_JWKS_ENDPOINT=http://localhost:9000/application/o/<slug>/jwks/
+      #- OIDC_DISABLE_LOCAL_AUTH=False
     volumes:
       - ./server:/app
     depends_on:
