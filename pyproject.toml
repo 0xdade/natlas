@@ -2,7 +2,8 @@
 dev = [
   "mypy~=1.14",
   "pytest-cov~=6.0",
-  "pytest~=8.3"
+  "pytest~=8.3",
+  "tach~=0.34"
 ]
 
 [tool.ruff]
