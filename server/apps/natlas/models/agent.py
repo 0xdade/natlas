@@ -1,33 +1,19 @@
-import secrets
+from __future__ import annotations
 
-import uuid6
-from django.contrib.auth.hashers import check_password, make_password
-from django.db import models
+from django.conf import settings
 
-from apps.core.models import TimeStampedModel
+from apps.custom_auth.models import BaseApiKey
 
 
-class Agent(TimeStampedModel):
-    agent_id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
-    token_hash = models.CharField(max_length=256)
-    friendly_name = models.CharField(max_length=128, blank=True, default="")
-    last_seen = models.DateTimeField(null=True, blank=True)
-    is_active = models.BooleanField(default=True, db_index=True)
-
-    TOKEN_LENGTH = 32
+class Agent(BaseApiKey):
+    """Represents an authenticated natlas agent instance."""
 
     def __str__(self) -> str:
-        return self.friendly_name or str(self.agent_id)
+        return self.name or str(self.id)
 
-    @staticmethod
-    def generate_token() -> str:
-        return secrets.token_urlsafe(Agent.TOKEN_LENGTH)
-
-    def set_token(self, raw_token: str) -> None:
-        self.token_hash = make_password(raw_token)
-
-    def check_token(self, raw_token: str) -> bool:
-        return check_password(raw_token, self.token_hash)
+    @classmethod
+    def get_prefix(cls) -> str:
+        return str(getattr(settings, "AGENT_KEY_PREFIX", "agt"))
 
     def verify_auth(self, raw_token: str) -> bool:
         return self.is_active and self.check_token(raw_token)

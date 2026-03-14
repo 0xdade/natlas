@@ -94,6 +94,26 @@
 {% block content %}
 <h1 class="section-heading">Dashboard</h1>
 
+<div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr);">
+  {% for s in recent_stats %}
+  <div class="card">
+    <div class="card-title">Last {{ s.window_hours }}h</div>
+    <div class="stat-row">
+      <span class="stat-label">Scans completed</span>
+      <span class="stat-value">{{ s.total_scans }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Hosts with open ports</span>
+      <span class="stat-value up">{{ s.hosts_with_open_ports }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Open ports observed</span>
+      <span class="stat-value accent">{{ s.total_open_ports }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
 <div class="dashboard-grid">
 
   {# Agents #}
@@ -174,8 +194,12 @@
         <span class="stat-value">{{ status.last_completed_cycle.completed_at|date:"M d, H:i" }}</span>
       </div>
       <div class="stat-row">
-        <span class="stat-label">Duration</span>
-        <span class="stat-value accent">{{ status.last_completed_cycle.duration_seconds|floatformat:0 }}s</span>
+        <span class="stat-label">Scan duration</span>
+        <span class="stat-value accent">
+          {% if status.last_completed_cycle.scan_duration_seconds %}
+            {{ status.last_completed_cycle.scan_duration_seconds|floatformat:0 }}s
+          {% else %}—{% endif %}
+        </span>
       </div>
     {% else %}
       <p class="empty-state">No completed cycles yet.</p>

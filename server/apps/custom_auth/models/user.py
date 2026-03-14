@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -13,7 +15,7 @@ class UserManager(BaseUserManager["User"]):
         email: str,
         password: str | None = None,
         **extra_fields: object,
-    ) -> "User":
+    ) -> User:
         if not email:
             raise ValueError("Email address is required")
         email = self.normalize_email(email)
@@ -27,7 +29,7 @@ class UserManager(BaseUserManager["User"]):
         email: str,
         password: str | None = None,
         **extra_fields: object,
-    ) -> "User":
+    ) -> User:
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(email, password, **extra_fields)

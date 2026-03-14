@@ -5,8 +5,8 @@ import uuid
 from typing import Any
 
 from django.core.paginator import Page, Paginator
-from django.db.models import Exists, OuterRef
-from django.http import HttpRequest
+from django.db.models import Count, Exists, OuterRef, Q, Subquery
+from django.http import Http404, HttpRequest
 from django.shortcuts import get_object_or_404
 from djangoql.exceptions import DjangoQLError
 from djangoql.queryset import apply_search
@@ -15,7 +15,7 @@ from ninja import Router
 
 from apps.core.schemas import TemplateSchema
 from apps.natlas.models.port import Port
-from apps.natlas.models.scan import LatestScanResult, ScanResult
+from apps.natlas.models.scan import ScanResult
 from apps.natlas.search import HostSearchSchema
 
 _RESULTS_PER_PAGE = 25
@@ -25,7 +25,7 @@ router = Router()
 
 class HostsResponseSchema(TemplateSchema):
     template_name: str = "natlas/hosts.html"
-    results: Page[LatestScanResult]
+    results: Page[ScanResult]
     q: str
     error: str | None
     introspections: str
@@ -38,27 +38,35 @@ class HostsResponseSchema(TemplateSchema):
 def hosts(
     request: HttpRequest, q: str = "", page: int = 1
 ) -> tuple[int, HostsResponseSchema]:
-    qs = (
-        LatestScanResult.objects.filter(
-            Exists(Port.objects.filter(scan_result=OuterRef("scan_result")))
-        )
-        .select_related("agent", "scan_result")
-        .prefetch_related("scan_result__ports")
+    # Step 1: most recent scan ID per target (no port filter).
+    latest_ids = Subquery(
+        ScanResult.objects.order_by("target", "-scanned_at")
+        .distinct("target")
+        .values("scan_id")
+    )
+
+    # Step 2: filter those latest scans to only hosts with open ports, then search.
+    has_open_port = Exists(
+        Port.objects.filter(scan_result=OuterRef("pk"), state="open")
+    )
+    qs: Any = (
+        ScanResult.objects.filter(scan_id__in=latest_ids)
+        .filter(has_open_port)
+        .select_related("agent")
+        .annotate(open_port_count=Count("ports", filter=Q(ports__state="open")))
         .order_by("-scanned_at")
     )
-    error: str | None = None
 
+    error: str | None = None
     if q:
         try:
             qs = apply_search(qs, q, HostSearchSchema)
         except DjangoQLError as e:
             error = str(e)
-            qs = qs.none()
+            qs = ScanResult.objects.none()
 
-    # You may want to use SuggestionsAPISerializer and an additional API
-    # endpoint (see in djangoql.views) for asynchronous suggestions loading
     introspections = DjangoQLSchemaSerializer().serialize(
-        HostSearchSchema(LatestScanResult),
+        HostSearchSchema(ScanResult),
     )
 
     paginator = Paginator(qs, _RESULTS_PER_PAGE)
@@ -85,18 +93,15 @@ class HostDetailResponseSchema(TemplateSchema):
 def host_detail(
     request: HttpRequest, target: str
 ) -> tuple[int, HostDetailResponseSchema]:
-    latest = get_object_or_404(
-        LatestScanResult.objects.select_related(
-            "agent", "scan_result"
-        ).prefetch_related("scan_result__ports__scripts"),
-        target=target,
-    )
     history = list(
         ScanResult.objects.filter(target=target)
         .select_related("agent")
-        .prefetch_related("ports")
+        .prefetch_related("ports__scripts")
         .order_by("-scanned_at")
     )
+    if not history:
+        raise Http404
+    latest = history[0]
     return 200, HostDetailResponseSchema(latest=latest, history=history)
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 
+import uuid6
 from django.db import models
 from netfields import InetAddressField
 
@@ -27,11 +28,10 @@ class ScanTask(TimeStampedModel):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
+    task_id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     cycle = models.ForeignKey(
         "ScanCycle",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.CASCADE,
         related_name="tasks",
     )
     target = InetAddressField(store_prefix_length=False)

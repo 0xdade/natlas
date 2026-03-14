@@ -6,18 +6,25 @@ from datetime import datetime
 from ninja import Schema
 
 
+class DNSNameSchema(Schema):
+    name: str
+    record_type: str
+    value: str
+
+
 class ClaimResponseSchema(Schema):
     """Returned when an agent successfully claims a task."""
 
-    task_id: int
+    task_id: uuid.UUID
     scan_id: uuid.UUID
     target: str
+    dns_names: list[DNSNameSchema]
 
 
 class SubmitResultSchema(Schema):
     """Body for a scan result submission."""
 
-    task_id: int
+    task_id: uuid.UUID
     scan_id: uuid.UUID
     raw_nmap: str = ""
     raw_xml: str = ""
@@ -31,4 +38,4 @@ class SubmitAckSchema(Schema):
 
 
 class FailTaskSchema(Schema):
-    task_id: int
+    task_id: uuid.UUID

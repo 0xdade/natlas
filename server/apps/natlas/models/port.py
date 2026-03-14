@@ -15,13 +15,13 @@ class Port(models.Model):
     scan_result = models.ForeignKey(
         ScanResult, on_delete=models.CASCADE, related_name="ports"
     )
-    port_number = models.IntegerField(db_index=True)
+    port_number = models.IntegerField()
     protocol = models.CharField(max_length=3, choices=Protocol.choices)
     state = models.CharField(max_length=10)
-    service_name = models.CharField(max_length=64, blank=True)
-    service_product = models.CharField(max_length=256, blank=True)
-    service_version = models.CharField(max_length=256, blank=True)
-    service_extra = models.CharField(max_length=256, blank=True)
+    service_name = models.CharField(max_length=64, blank=True, default="")
+    service_product = models.CharField(max_length=256, blank=True, default="")
+    service_version = models.CharField(max_length=256, blank=True, default="")
+    service_extra = models.CharField(max_length=256, blank=True, default="")
 
     class Meta:
         constraints: typing.ClassVar = [

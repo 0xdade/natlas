@@ -4,82 +4,94 @@ from django.db.models import Q
 from djangoql.schema import DjangoQLSchema, IntField, StrField
 from netfields import InetAddressField
 
-from apps.natlas.models.scan import LatestScanResult
+from apps.natlas.models.scan import ScanResult
 
 
 class PortNumberField(IntField):
-    model = LatestScanResult
+    model = ScanResult
     name = "port"
 
     def get_lookup_name(self) -> str:
-        return "scan_result__ports__port_number"
+        return "ports__port_number"
 
 
 class ProtocolField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "protocol"
     suggest_options = True
 
     def get_lookup_name(self) -> str:
-        return "scan_result__ports__protocol"
+        return "ports__protocol"
 
     def get_options(self, search: str) -> list[str]:
         return [p for p in ("tcp", "udp") if search.lower() in p]
 
 
 class ServiceField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "service"
 
     def get_lookup_name(self) -> str:
-        return "scan_result__ports__service_name"
+        return "ports__service_name"
 
 
 class ProductField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "product"
 
     def get_lookup_name(self) -> str:
-        return "scan_result__ports__service_product"
+        return "ports__service_product"
 
 
 class VersionField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "version"
 
     def get_lookup_name(self) -> str:
-        return "scan_result__ports__service_version"
+        return "ports__service_version"
 
 
 class ScriptField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "script"
 
     def get_lookup_name(self) -> str:
-        return "scan_result__ports__scripts__name"
+        return "ports__scripts__name"
 
 
 class NmapField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "nmap"
 
     def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
         invert = operator in ("!=", "!~", "not in", "not startswith", "not endswith")
-        q = Q(scan_result__raw_nmap__search=value)
+        q = Q(raw_nmap__search=value)
         return ~q if invert else q
 
 
 class AgentField(StrField):
-    model = LatestScanResult
+    model = ScanResult
     name = "agent"
 
     def get_lookup_name(self) -> str:
-        return "agent__agent_id"
+        return "agent__id"
+
+
+class SubnetField(StrField):
+    """Match hosts whose IP falls within a CIDR, e.g. subnet = "10.0.0.0/8"."""
+
+    model = ScanResult
+    name = "subnet"
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        invert = operator in ("!=",)
+        q = Q(target__net_contained_or_equal=value)
+        return ~q if invert else q
 
 
 class HostSearchSchema(DjangoQLSchema):
     def get_fields(self, model: type) -> list:
-        if model == LatestScanResult:
+        if model == ScanResult:
             return [
                 "target",
                 "scanned_at",
@@ -90,6 +102,7 @@ class HostSearchSchema(DjangoQLSchema):
                 VersionField(),
                 ScriptField(),
                 AgentField(),
+                SubnetField(),
                 NmapField(),
             ]
         return []

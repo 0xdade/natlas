@@ -53,13 +53,20 @@ _FIRST_PARTY_APPS: list[str] = [
     "apps.core",
     "apps.instrumentation",
     "apps.auto_admin",
-    "apps.custom_user",
+    "apps.custom_auth",
     "apps.natlas",
 ]
 
 INSTALLED_APPS: list[str] = _DJANGO_APPS + _THIRD_PARTY_APPS + _FIRST_PARTY_APPS
 
-AUTH_USER_MODEL: str = "custom_user.User"
+AUTH_USER_MODEL: str = "custom_auth.User"
+
+# Prefix prepended to the user-visible token string for each API key type.
+# Override in deployment settings to match your application's brand/namespace.
+# Format: {prefix}_{key_id}:{raw_token}
+AGENT_KEY_PREFIX: str = "agt"
+USER_API_KEY_PREFIX: str = "uak"
+SERVICE_API_KEY_PREFIX: str = "sak"
 
 MIDDLEWARE: list[str] = [
     "django.middleware.security.SecurityMiddleware",

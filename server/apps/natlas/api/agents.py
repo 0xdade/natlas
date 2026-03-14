@@ -8,11 +8,13 @@ from ninja import Router
 
 from apps.natlas.api.auth import AgentAuth
 from apps.natlas.models.agent import Agent
+from apps.natlas.models.dns import DNSRecord
 from apps.natlas.models.port import Port, Script
-from apps.natlas.models.scan import LatestScanResult, ScanResult
+from apps.natlas.models.scan import ScanResult
 from apps.natlas.models.task import ScanTask
 from apps.natlas.schemas.agents import (
     ClaimResponseSchema,
+    DNSNameSchema,
     FailTaskSchema,
     SubmitAckSchema,
     SubmitResultSchema,
@@ -48,12 +50,16 @@ def claim_task(request: HttpRequest) -> tuple[int, ClaimResponseSchema | None]:
             update_fields=["status", "agent", "claimed_at", "claim_count", "updated_at"]
         )
 
-    Agent.objects.filter(pk=agent.pk).update(last_seen=now())
+    dns_names = [
+        DNSNameSchema(name=r.name, record_type=r.record_type, value=r.value)
+        for r in DNSRecord.objects.filter(resolved_ip=task.target)
+    ]
 
     return 200, ClaimResponseSchema(
         task_id=task.pk,
         scan_id=scan_id,
         target=str(task.target),
+        dns_names=dns_names,
     )
 
 
@@ -61,10 +67,7 @@ def claim_task(request: HttpRequest) -> tuple[int, ClaimResponseSchema | None]:
 def submit_result(
     request: HttpRequest, payload: SubmitResultSchema
 ) -> tuple[int, SubmitAckSchema | dict]:
-    """Submit scan results and mark the task complete.
-
-    Creates a ScanResult history row and upserts LatestScanResult for the host.
-    """
+    """Submit scan results and mark the task complete."""
     agent: Agent = request.auth  # type: ignore[assignment]
 
     with transaction.atomic():
@@ -77,7 +80,6 @@ def submit_result(
             return 404, {"detail": "Task not found or not owned by this agent"}
 
         completed = now()
-        raw_data = {"raw_xml": payload.raw_xml, "raw_gnmap": payload.raw_gnmap}
         scan_result = ScanResult.objects.create(
             scan_id=payload.scan_id,
             target=task.target,
@@ -85,7 +87,7 @@ def submit_result(
             scanned_at=completed,
             scan_start=payload.scan_start,
             scan_stop=payload.scan_stop,
-            raw_data=raw_data,
+            raw_data=payload.model_dump(mode="json"),
             raw_nmap=payload.raw_nmap,
         )
 
@@ -103,24 +105,10 @@ def submit_result(
             for s in p.scripts:
                 Script.objects.create(port=port, name=s.name, output=s.output)
 
-        LatestScanResult.objects.update_or_create(
-            target=task.target,
-            defaults={
-                "scan_id": payload.scan_id,
-                "agent": agent,
-                "scanned_at": completed,
-                "scan_start": payload.scan_start,
-                "scan_stop": payload.scan_stop,
-                "raw_data": raw_data,
-                "scan_result": scan_result,
-            },
-        )
         task.status = ScanTask.Status.COMPLETED
         task.completed_at = completed
         task.scan_result = scan_result
         task.save(update_fields=["status", "completed_at", "scan_result", "updated_at"])
-
-    Agent.objects.filter(pk=agent.pk).update(last_seen=now())
 
     return 200, SubmitAckSchema(scan_id=payload.scan_id)
 

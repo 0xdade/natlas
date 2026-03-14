@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 
-from django.db.models import Count, Q
+from django.db.models import Count, Max, Min, Q
 from django.http import HttpRequest
 from django.utils.timezone import now
 from ninja import Router
@@ -62,9 +62,9 @@ RECENTLY_SEEN_MINUTES = 15
 def _agent_stats() -> AgentStatsSchema:
     cutoff = now() - datetime.timedelta(minutes=RECENTLY_SEEN_MINUTES)
     agg = Agent.objects.aggregate(
-        total=Count("agent_id"),
-        active=Count("agent_id", filter=Q(is_active=True)),
-        recently_seen=Count("agent_id", filter=Q(last_seen__gte=cutoff)),
+        total=Count("id"),
+        active=Count("id", filter=Q(is_active=True)),
+        recently_seen=Count("id", filter=Q(last_used__gte=cutoff)),
     )
     return AgentStatsSchema(
         total=agg["total"],
@@ -107,12 +107,21 @@ def get_status(request: HttpRequest) -> StatusSchema:
     )
     last_schema = None
     if last is not None and last.completed_at is not None:
+        task_times = last.tasks.aggregate(
+            first_created=Min("created_at"),
+            last_completed=Max("completed_at"),
+        )
+        scan_duration = None
+        if task_times["first_created"] and task_times["last_completed"]:
+            scan_duration = (
+                task_times["last_completed"] - task_times["first_created"]
+            ).total_seconds()
         last_schema = LastCycleSchema(
             id=last.pk,
             total_ips=last.total_ips,
             started_at=last.created_at,
             completed_at=last.completed_at,
-            duration_seconds=(last.completed_at - last.created_at).total_seconds(),
+            scan_duration_seconds=scan_duration,
         )
 
     return StatusSchema(

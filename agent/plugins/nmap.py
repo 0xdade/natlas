@@ -8,7 +8,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from agent import config
-from agent.plugins import Plugin, ScanContext
+from agent.context import ScanContext
+from agent.plugins import Plugin
 
 log = logging.getLogger(__name__)
 

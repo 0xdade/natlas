@@ -24,14 +24,14 @@ path = "apps.core"
 
 [[modules ]]
 depends_on = ["apps.core"]
-path = "apps.custom_user"
+path = "apps.custom_auth"
 
 [[modules ]]
 depends_on = []
 path = "apps.instrumentation"
 
 [[modules ]]
-depends_on = ["apps.core"]
+depends_on = ["apps.core", "apps.custom_auth"]
 path = "apps.natlas"
 
 [[modules ]]

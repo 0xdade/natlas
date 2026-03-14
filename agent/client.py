@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import uuid
+
 import httpx
 
 from agent import config
-from agent.plugins import ScanContext
+from agent.context import ScanContext
 
 
 class ServerClient:
@@ -32,7 +34,7 @@ class ServerClient:
         resp = self._http.post(
             "/api/agents/submit/",
             json={
-                "task_id": ctx.task_id,
+                "task_id": str(ctx.task_id),
                 "scan_id": str(ctx.scan_id),
                 "raw_nmap": ctx.nmap.text,
                 "raw_xml": ctx.nmap.xml,
@@ -43,9 +45,9 @@ class ServerClient:
         )
         resp.raise_for_status()
 
-    def fail(self, task_id: int) -> None:
+    def fail(self, task_id: uuid.UUID) -> None:
         """Mark a claimed task as failed."""
-        resp = self._http.post("/api/agents/fail/", json={"task_id": task_id})
+        resp = self._http.post("/api/agents/fail/", json={"task_id": str(task_id)})
         resp.raise_for_status()
 
     def close(self) -> None:

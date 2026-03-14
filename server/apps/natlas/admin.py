@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import json
+
 from django import forms
 from django.contrib import admin, messages
 from django.http import HttpRequest, HttpResponse
+from django.utils.html import format_html, mark_safe
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import JsonLexer
 
 from apps.core.admin import DjangoQLAdminMixin
-from apps.natlas.models import LatestScanResult, ScanCycle, ScanResult, ScopeItem, Tag
+from apps.natlas.models import ScanCycle, ScanResult, ScopeItem, Tag
 from apps.natlas.models.agent import Agent
 from apps.natlas.models.task import ScanTask
 
@@ -159,15 +165,15 @@ class ScanTaskAdmin(DjangoQLAdminMixin, admin.ModelAdmin[ScanTask]):
 
 @admin.register(Agent)
 class AgentAdmin(DjangoQLAdminMixin, admin.ModelAdmin[Agent]):
-    list_display = ["friendly_name", "agent_id", "is_active", "last_seen", "created_at"]
+    list_display = ["name", "id", "is_active", "last_used", "created_at"]
     list_filter = ["is_active"]
-    search_fields = ["friendly_name", "agent_id"]
+    search_fields = ["name", "id"]
     readonly_fields = [
-        "agent_id",
+        "id",
         "token_hash",
         "created_at",
         "updated_at",
-        "last_seen",
+        "last_used",
     ]
     actions = ["regenerate_token"]
 
@@ -188,7 +194,7 @@ class AgentAdmin(DjangoQLAdminMixin, admin.ModelAdmin[Agent]):
             self.message_user(
                 request,
                 f"Agent created. Copy this token now — it will not be shown again: "
-                f"{obj.agent_id}:{token}",
+                f"{obj.make_token_string(token)}",
                 level=messages.WARNING,
             )
         return super().response_add(request, obj, post_url_continue)
@@ -202,7 +208,7 @@ class AgentAdmin(DjangoQLAdminMixin, admin.ModelAdmin[Agent]):
             self.message_user(
                 request,
                 f"New token for {agent} — copy now, will not be shown again: "
-                f"{agent.agent_id}:{token}",
+                f"{agent.make_token_string(token)}",
                 level=messages.WARNING,
             )
 
@@ -256,13 +262,54 @@ class ScanCycleAdmin(DjangoQLAdminMixin, admin.ModelAdmin[ScanCycle]):
         return f"{obj.ips_queued:,} / {obj.total_ips:,} ({pct:.1f}%)"
 
 
+_JSON_FORMATTER = HtmlFormatter(
+    style="friendly",
+    noclasses=True,
+    prestyles="overflow:auto;max-height:600px;padding:0.75rem;border-radius:4px;",
+)
+
+
+@admin.register(ScanResult)
 class ScanDataAdmin(DjangoQLAdminMixin, admin.ModelAdmin):  # type: ignore[type-arg]
     """Shared read-only config for ScanResult and LatestScanResult."""
 
     list_display = ["scan_id", "target", "agent", "scanned_at"]
     list_filter = ["agent"]
-    readonly_fields = ["scan_id", "target", "agent", "scanned_at", "raw_data"]
-    fields = ["scan_id", "target", "agent", "scanned_at", "raw_data"]
+    search_fields = ["target", "scan_id"]
+    readonly_fields = [
+        "scan_id",
+        "target",
+        "agent",
+        "scanned_at",
+        "scan_start",
+        "scan_stop",
+        "port_count",
+        "is_up",
+        "raw_data_pretty",
+    ]
+    fieldsets = [
+        ("Scan", {"fields": ["scan_id", "target", "agent"]}),
+        ("Timestamps", {"fields": ["scanned_at", "scan_start", "scan_stop"]}),
+        ("Results", {"fields": ["port_count", "is_up"]}),
+        (
+            "Raw Data",
+            {"fields": ["raw_data_pretty", "raw_nmap"], "classes": ["collapse"]},
+        ),
+    ]
+
+    @admin.display(description="Raw data")
+    def raw_data_pretty(self, obj: ScanResult) -> str:
+        pretty = json.dumps(obj.raw_data, indent=2, default=str)
+        highlighted = mark_safe(highlight(pretty, JsonLexer(), _JSON_FORMATTER))
+        return format_html("{}", highlighted)
+
+    @admin.display(description="Port count", boolean=False)
+    def port_count(self, obj: ScanResult) -> int:
+        return obj.port_count
+
+    @admin.display(description="Is up", boolean=True)
+    def is_up(self, obj: ScanResult) -> bool:
+        return obj.is_up
 
     def has_add_permission(self, request: HttpRequest) -> bool:
         return False
@@ -271,11 +318,11 @@ class ScanDataAdmin(DjangoQLAdminMixin, admin.ModelAdmin):  # type: ignore[type-
         return False
 
 
-@admin.register(ScanResult)
 class ScanResultAdmin(ScanDataAdmin):
-    pass
-
-
-@admin.register(LatestScanResult)
-class LatestScanResultAdmin(ScanDataAdmin):
-    pass
+    fieldsets = [
+        ("Scan", {"fields": ["scan_id", "target", "agent"]}),
+        ("Timestamps", {"fields": ["scanned_at", "scan_start", "scan_stop"]}),
+        ("Results", {"fields": ["port_count", "is_up", "raw_nmap"]}),
+        ("Raw Data", {"fields": ["raw_data_pretty"], "classes": ["collapse"]}),
+    ]
+    readonly_fields = [*ScanDataAdmin.readonly_fields, "raw_nmap"]

@@ -36,7 +36,7 @@ class LastCycleSchema(Schema):
     total_ips: int
     started_at: datetime.datetime
     completed_at: datetime.datetime
-    duration_seconds: float
+    scan_duration_seconds: float | None  # first task created → last task completed
 
 
 class StatusSchema(Schema):

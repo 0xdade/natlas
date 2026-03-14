@@ -12,7 +12,7 @@ from django.utils.timezone import now
 
 from apps.natlas.models.agent import Agent
 from apps.natlas.models.cycle import ScanCycle
-from apps.natlas.models.scan import LatestScanResult, ScanResult
+from apps.natlas.models.scan import ScanResult
 from apps.natlas.models.task import ScanTask
 from apps.natlas.services.cycle import advance_scan_cycle, create_scan_cycle
 from apps.natlas.tests.factories import build_realistic_scan, generate_raw_nmap
@@ -109,9 +109,9 @@ def mock_agent_tick() -> None:
         return
 
     agent, _ = Agent.objects.get_or_create(
-        agent_id=_MOCK_AGENT_ID,
+        id=_MOCK_AGENT_ID,
         defaults={
-            "friendly_name": "Mock Dev Agent",
+            "name": "Mock Dev Agent",
             "is_active": True,
             "token_hash": make_password(Agent.generate_token()),
         },
@@ -150,19 +150,9 @@ def mock_agent_tick() -> None:
         raw_nmap = generate_raw_nmap(str(task.target), ports)
         ScanResult.objects.filter(pk=scan_result.pk).update(raw_nmap=raw_nmap)
 
-        LatestScanResult.objects.update_or_create(
-            target=task.target,
-            defaults={
-                "scan_id": scan_id,
-                "agent": agent,
-                "scanned_at": completed,
-                "raw_data": {},
-                "scan_result": scan_result,
-            },
-        )
         task.status = ScanTask.Status.COMPLETED
         task.completed_at = completed
         task.scan_result = scan_result
         task.save(update_fields=["status", "completed_at", "scan_result", "updated_at"])
 
-    Agent.objects.filter(pk=agent.pk).update(last_seen=completed)
+    Agent.objects.filter(pk=agent.pk).update(last_used=completed)

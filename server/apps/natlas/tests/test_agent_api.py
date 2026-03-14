@@ -17,7 +17,7 @@ from ninja.testing import TestClient
 from apps.natlas.api.agents import router
 from apps.natlas.models.agent import Agent
 from apps.natlas.models.cycle import ScanCycle
-from apps.natlas.models.scan import LatestScanResult, ScanResult
+from apps.natlas.models.scan import ScanResult
 from apps.natlas.models.scope import ScopeItem
 from apps.natlas.models.task import ScanTask
 from apps.natlas.tasks import tick_scan_cycle
@@ -41,7 +41,7 @@ def _make_agent(*, is_active: bool = True) -> tuple[Agent, str]:
 
 
 def _auth(agent: Agent, token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {agent.agent_id}:{token}"}
+    return {"Authorization": f"Bearer {agent.make_token_string(token)}"}
 
 
 def _enqueue_all(settings) -> None:
@@ -70,7 +70,8 @@ class TestAgentAuth:
     def test_wrong_token_returns_401(self) -> None:
         agent, _ = _make_agent()
         r = client.post(
-            "/claim/", headers={"Authorization": f"Bearer {agent.agent_id}:bad"}
+            "/claim/",
+            headers={"Authorization": f"Bearer {agent.make_token_string('bad')}"},
         )
         assert r.status_code == 401
 
@@ -110,12 +111,12 @@ class TestAgentClaim:
         assert task.claimed_at is not None
         assert task.claim_count == 1
 
-    def test_claim_updates_agent_last_seen(self, settings) -> None:  # type: ignore[type-arg]
+    def test_claim_updates_agent_last_used(self, settings) -> None:  # type: ignore[type-arg]
         _enqueue_all(settings)
         agent, token = _make_agent()
         client.post("/claim/", headers=_auth(agent, token))
         agent.refresh_from_db()
-        assert agent.last_seen is not None
+        assert agent.last_used is not None
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +130,12 @@ class TestAgentSubmit:
         agent, token = _make_agent()
         r = client.post(
             "/submit/",
-            json={"task_id": 999999, "scan_id": str(uuid.uuid4())},
+            json={
+                "task_id": str(uuid.uuid4()),
+                "scan_id": str(uuid.uuid4()),
+                "scan_start": "2024-01-01T00:00:00Z",
+                "scan_stop": "2024-01-01T00:00:01Z",
+            },
             headers=_auth(agent, token),
         )
         assert r.status_code == 404
@@ -141,10 +147,23 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent1, token1)).json()
         r = client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
+            json={
+                "task_id": claim["task_id"],
+                "scan_id": claim["scan_id"],
+                "scan_start": "2024-01-01T00:00:00Z",
+                "scan_stop": "2024-01-01T00:00:01Z",
+            },
             headers=_auth(agent2, token2),
         )
         assert r.status_code == 404
+
+    def _submit_payload(self, claim: dict) -> dict:  # type: ignore[type-arg]
+        return {
+            "task_id": claim["task_id"],
+            "scan_id": claim["scan_id"],
+            "scan_start": "2024-01-01T00:00:00Z",
+            "scan_stop": "2024-01-01T00:00:01Z",
+        }
 
     def test_submit_creates_scan_result(self, settings) -> None:  # type: ignore[type-arg]
         _enqueue_all(settings)
@@ -152,7 +171,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         r = client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
+            json=self._submit_payload(claim),
             headers=_auth(agent, token),
         )
         assert r.status_code == 200
@@ -164,10 +183,10 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
+            json=self._submit_payload(claim),
             headers=_auth(agent, token),
         )
-        assert LatestScanResult.objects.count() == 1
+        assert ScanResult.objects.count() == 1
 
     def test_submit_marks_task_completed(self, settings) -> None:  # type: ignore[type-arg]
         _enqueue_all(settings)
@@ -175,7 +194,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
+            json=self._submit_payload(claim),
             headers=_auth(agent, token),
         )
         task = ScanTask.objects.get(pk=claim["task_id"])
@@ -188,7 +207,7 @@ class TestAgentSubmit:
         claim = client.post("/claim/", headers=_auth(agent, token)).json()
         client.post(
             "/submit/",
-            json={"task_id": claim["task_id"], "scan_id": claim["scan_id"]},
+            json=self._submit_payload(claim),
             headers=_auth(agent, token),
         )
         task = ScanTask.objects.get(pk=claim["task_id"])
@@ -217,7 +236,9 @@ class TestAgentFail:
 
     def test_fail_unknown_task_returns_404(self) -> None:
         agent, token = _make_agent()
-        r = client.post("/fail/", json={"task_id": 999999}, headers=_auth(agent, token))
+        r = client.post(
+            "/fail/", json={"task_id": str(uuid.uuid4())}, headers=_auth(agent, token)
+        )
         assert r.status_code == 404
 
     def test_fail_wrong_owner_returns_404(self, settings) -> None:  # type: ignore[type-arg]
@@ -269,6 +290,8 @@ class TestAgentFullCycle:
                 json={
                     "task_id": claim["task_id"],
                     "scan_id": claim["scan_id"],
+                    "scan_start": "2024-01-01T00:00:00Z",
+                    "scan_stop": "2024-01-01T00:00:01Z",
                 },
                 headers=auth,
             )
@@ -279,16 +302,16 @@ class TestAgentFullCycle:
 
         # Every IP has a history entry and a current-state entry
         assert ScanResult.objects.count() == 4
-        assert LatestScanResult.objects.count() == 4
+        assert ScanResult.objects.count() == 4
         assert ScanTask.objects.filter(status=ScanTask.Status.COMPLETED).count() == 4
 
         # Cycle was already marked COMPLETE by advance_scan_cycle when the
         # last IP was queued (ips_queued == total_ips), not at scan time.
         assert ScanCycle.objects.get().status == ScanCycle.Status.COMPLETE
 
-        # agent.last_seen was bumped on each claim/submit
+        # agent.last_used was bumped on each claim/submit
         agent.refresh_from_db()
-        assert agent.last_seen is not None
+        assert agent.last_used is not None
 
     def test_second_cycle_continues_consistent_order(self, settings) -> None:  # type: ignore[type-arg]
         """After a full cycle, a new cycle reuses the same LCG step (consistent order)."""
@@ -304,6 +327,8 @@ class TestAgentFullCycle:
                 json={
                     "task_id": claim["task_id"],
                     "scan_id": claim["scan_id"],
+                    "scan_start": "2024-01-01T00:00:00Z",
+                    "scan_stop": "2024-01-01T00:00:01Z",
                 },
                 headers=auth,
             )
@@ -311,10 +336,11 @@ class TestAgentFullCycle:
         cycle1 = ScanCycle.objects.get()
         assert cycle1.status == ScanCycle.Status.COMPLETE
 
-        # Open cycle 2
+        # Open cycle 2 — tick creates and immediately advances it (small scope)
         tick_scan_cycle()
-        cycle2 = ScanCycle.objects.get(status=ScanCycle.Status.ACTIVE)
+        cycle2 = ScanCycle.objects.order_by("-created_at").first()
+        assert cycle2 is not None
+        assert cycle2.pk != cycle1.pk
 
-        # Consistent order: same step and starting position as cycle 1
+        # Consistent order: same LCG step as cycle 1
         assert cycle2.lcg_b == cycle1.lcg_b
-        assert cycle2.lcg_current == cycle1.lcg_current

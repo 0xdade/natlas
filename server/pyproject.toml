@@ -27,6 +27,7 @@ dependencies = [
   "opentelemetry-instrumentation-redis~=0.48b0",
   "opentelemetry-sdk~=1.27",
   "psycopg[binary]~=3.2",
+  "pygments~=2.0",
   "sentry-sdk[django]~=2.0",
   "uuid6~=2025.0",
   "whitenoise[brotli]~=6.0"

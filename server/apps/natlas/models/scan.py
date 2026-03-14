@@ -12,99 +12,46 @@ from netfields import InetAddressField
 from apps.natlas.models.agent import Agent
 
 
-class ScanData(models.Model):
-    """Shared fields between ScanResult and LatestScanResult.
-
-    scan_id is the stable identifier for a single scan run. The same UUID
-    appears in both tables, so a LatestScanResult can be traced directly
-    to its ScanResult row in the history table.
-    """
-
-    scan_id = models.UUIDField(default=uuid6.uuid7)
-    target = InetAddressField(store_prefix_length=False, db_index=True)
-    agent = models.ForeignKey(
-        Agent,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="%(class)s_set",
-    )
-    scanned_at = models.DateTimeField(default=timezone.now, db_index=True)
-    scan_start = models.DateTimeField(null=True, db_index=True)
-    scan_stop = models.DateTimeField(null=True, db_index=True)
-    raw_data = models.JSONField()
-
-    class Meta:
-        abstract = True
-
-
-class ScanResult(ScanData):
+class ScanResult(models.Model):
     """Append-only scan history. One row per completed scan.
 
     Query by scan_id for a direct fetch, or by (target, scanned_at) for
     the history of a specific host.
     """
 
+    scan_id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    target = InetAddressField(store_prefix_length=False, db_index=True)
+    agent = models.ForeignKey(
+        Agent,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="scan_results",
+    )
+    scanned_at = models.DateTimeField(default=timezone.now, db_index=True)
+    scan_start = models.DateTimeField(db_index=True)
+    scan_stop = models.DateTimeField(db_index=True)
+    raw_data = models.JSONField()
+
     raw_nmap = models.TextField(blank=True, default="")
 
     @property
     def port_count(self) -> int:
-        return self.ports.count()  # type: ignore[attr-defined]
+        # Use annotation (open_port_count) when available to avoid N+1 on list views.
+        if (n := getattr(self, "open_port_count", None)) is not None:
+            return n  # type: ignore[return-value]
+        return self.ports.filter(state="open").count()  # type: ignore[attr-defined]
 
     @property
     def is_up(self) -> bool:
+        if (n := getattr(self, "open_port_count", None)) is not None:
+            return n > 0  # type: ignore[operator]
         return self.ports.filter(state="open").exists()  # type: ignore[attr-defined]
 
     class Meta:
-        constraints: typing.ClassVar = [
-            models.UniqueConstraint(
-                fields=["scan_id"],
-                name="unique_scan_result_scan_id",
-            ),
-        ]
         indexes: typing.ClassVar = [
             models.Index(fields=["target", "scanned_at"]),
             GinIndex(
                 SearchVector("raw_nmap", config="english"),
                 name="scanresult_raw_nmap_fts_idx",
-            ),
-        ]
-
-
-class LatestScanResult(ScanData):
-    """One row per host, always reflecting the most recent scan.
-
-    Written via UPSERT (INSERT ... ON CONFLICT target DO UPDATE) on every
-    agent submission. scan_id matches the corresponding ScanResult row so
-    callers can jump directly to the full history entry.
-    """
-
-    scan_result = models.ForeignKey(
-        "ScanResult",
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="latest",
-    )
-
-    @property
-    def port_count(self) -> int:
-        if self.scan_result_id is None:
-            return 0
-        return self.scan_result.ports.count()  # type: ignore[attr-defined]
-
-    @property
-    def is_up(self) -> bool:
-        if self.scan_result_id is None:
-            return False
-        return self.scan_result.ports.filter(state="open").exists()  # type: ignore[attr-defined]
-
-    class Meta:
-        constraints: typing.ClassVar = [
-            models.UniqueConstraint(
-                fields=["target"],
-                name="unique_latest_scan_result_target",
-            ),
-            models.UniqueConstraint(
-                fields=["scan_id"],
-                name="unique_latest_scan_result_scan_id",
             ),
         ]

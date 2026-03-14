@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+from datetime import datetime, timezone
 
 from agent import config
 from agent.client import ServerClient
+from agent.context import DNSName, ScanContext
 from agent.runner import run as scan
 
 logging.basicConfig(
@@ -38,34 +40,38 @@ def main() -> None:
                 time.sleep(config.POLL_INTERVAL)
                 continue
 
-            task_id: int = task["task_id"]
-            scan_id: uuid.UUID = uuid.UUID(task["scan_id"])
-            target: str = task["target"]
+            ctx = ScanContext(
+                target=task["target"],
+                scan_id=uuid.UUID(task["scan_id"]),
+                task_id=uuid.UUID(task["task_id"]),
+                dns_names=[DNSName(**d) for d in task.get("dns_names", [])],
+                scan_start=datetime.now(timezone.utc),
+            )
 
-            log.info("Claimed task %s: scanning %s", task_id, target)
+            log.info("Claimed task %s: scanning %s", ctx.task_id, ctx.target)
 
             try:
-                ctx = scan(target, scan_id, task_id)
+                ctx = scan(ctx)
             except Exception:
-                log.exception("Scan failed for %s (task %s)", target, task_id)
+                log.exception("Scan failed for %s (task %s)", ctx.target, ctx.task_id)
                 try:
-                    client.fail(task_id)
+                    client.fail(ctx.task_id)
                 except Exception:
-                    log.exception("Failed to report task %s as failed", task_id)
+                    log.exception("Failed to report task %s as failed", ctx.task_id)
                 continue
 
             log.info(
                 "Scan complete for %s (task %s): %d open port(s)",
-                target,
-                task_id,
+                ctx.target,
+                ctx.task_id,
                 ctx.nmap.open_port_count,
             )
 
             try:
                 client.submit(ctx)
-                log.info("Submitted results for %s (task %s)", target, task_id)
+                log.info("Submitted results for %s (task %s)", ctx.target, ctx.task_id)
             except Exception:
-                log.exception("Failed to submit results for task %s", task_id)
+                log.exception("Failed to submit results for task %s", ctx.task_id)
 
 
 if __name__ == "__main__":

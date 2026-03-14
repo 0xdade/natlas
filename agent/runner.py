@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import datetime, timezone
 
-from agent.plugins import Plugin, ScanContext
+from agent.context import ScanContext
+from agent.plugins import Plugin
 from agent.plugins.masscan import MasscanPlugin
 from agent.plugins.nmap import NmapPlugin
 
@@ -44,18 +44,11 @@ class PluginRunner:
 
         return result
 
-    def run(self, target: str, scan_id: uuid.UUID, task_id: int) -> ScanContext:
-        ctx = ScanContext(
-            target=target,
-            scan_id=scan_id,
-            task_id=task_id,
-            scan_start=datetime.now(timezone.utc),
-        )
-
+    def run(self, ctx: ScanContext) -> ScanContext:
         plugins = self._sorted(self._enabled())
         log.info(
             "Scan pipeline for %s: %s",
-            target,
+            ctx.target,
             " → ".join(p.name for p in plugins) if plugins else "(empty)",
         )
 
@@ -69,5 +62,5 @@ class PluginRunner:
         return ctx
 
 
-def run(target: str, scan_id: uuid.UUID, task_id: int) -> ScanContext:
-    return PluginRunner().run(target, scan_id, task_id)
+def run(ctx: ScanContext) -> ScanContext:
+    return PluginRunner().run(ctx)

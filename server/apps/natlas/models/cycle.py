@@ -48,8 +48,8 @@ class ScanCycle(TimeStampedModel):
     # Order is preserved for deterministic index → IP mapping.
     scope_snapshot = models.JSONField()
 
-    total_ips = models.BigIntegerField()
-    ips_queued = models.BigIntegerField(default=0)
+    total_ips = models.PositiveBigIntegerField()
+    ips_queued = models.PositiveBigIntegerField(default=0)
 
     # LCG state
     lcg_m = models.BigIntegerField()

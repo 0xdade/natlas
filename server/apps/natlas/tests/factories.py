@@ -9,7 +9,7 @@ from django.utils.timezone import now
 
 from apps.natlas.models.agent import Agent
 from apps.natlas.models.port import Port, Script
-from apps.natlas.models.scan import LatestScanResult, ScanResult
+from apps.natlas.models.scan import ScanResult
 
 # Common service profiles: (port, protocol, service, product, version)
 _COMMON_SERVICES: list[tuple[int, str, str, str, str]] = [
@@ -91,8 +91,7 @@ class AgentFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Agent
 
-    agent_id = factory.LazyFunction(Agent.generate_token)
-    friendly_name = factory.Faker("hostname")
+    name = factory.Faker("hostname")
     is_active = True
     token_hash = factory.LazyFunction(lambda: make_password(Agent.generate_token()))
 
@@ -129,18 +128,6 @@ class ScriptFactory(factory.django.DjangoModelFactory):
     port = factory.SubFactory(PortFactory)
     name = factory.Faker("word")
     output = factory.Faker("sentence")
-
-
-class LatestScanResultFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = LatestScanResult
-        django_get_or_create = ("target",)
-
-    target = factory.Faker("ipv4_private")
-    agent = factory.SubFactory(AgentFactory)
-    scanned_at = factory.LazyFunction(now)
-    raw_data = {}
-    scan_result = factory.SubFactory(ScanResultFactory)
 
 
 def build_realistic_scan(scan_result: ScanResult) -> list[Port]:
