@@ -84,7 +84,7 @@ class SubnetField(StrField):
     name = "subnet"
 
     def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
-        invert = operator in ("!=",)
+        invert = operator == "!="
         q = Q(target__net_contained_or_equal=value)
         return ~q if invert else q
 

@@ -29,10 +29,16 @@ select = [
   "F",
   # flynt
   "FLY",
+  # Furb
+  "FURB",
   # isort
   "I",
+  # flake8-logging
+  "LOG",
   # pylint
   "PL",
+  # flake8-use-pathlib
+  "PTH",
   # flake8-return
   "RET",
   # Ruff's own rules
