@@ -62,6 +62,7 @@ class NmapPlugin(Plugin):
                 *extra_args,
                 "-sV",
                 "-sC",
+                "-sT",
                 *(["-d"] if config.DEBUG else []),
                 "-oA",
                 base,

@@ -50,7 +50,7 @@ FROM python:3.13-slim AS base
 # libpcap is required at runtime by both nmap and masscan;
 # libssl3 and zlib1g are already present via Python's own linkage
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpcap0.8 \
+    libpcap0.8 libssl3 zlib1g libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=nmap-builder /opt/nmap/bin/nmap /usr/local/bin/nmap
@@ -66,7 +66,8 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 COPY agent/pyproject.toml ./agent/
-RUN uv sync --frozen --no-dev --package natlas-agent
+RUN uv sync --frozen --no-dev --package natlas-agent \
+    && setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip $(which nmap)
 
 COPY agent/ ./agent/
 
