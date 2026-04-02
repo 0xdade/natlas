@@ -45,6 +45,7 @@ def main() -> None:
                 scan_id=uuid.UUID(task["scan_id"]),
                 task_id=uuid.UUID(task["task_id"]),
                 dns_names=[DNSName(**d) for d in task.get("dns_names", [])],
+                enabled_plugins=task.get("enabled_plugins", []),
                 scan_start=datetime.now(timezone.utc),
             )
 

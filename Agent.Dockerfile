@@ -70,6 +70,8 @@ RUN uv sync --frozen --no-dev --package natlas-agent \
     && setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip $(which nmap)
 
 COPY agent/ ./agent/
+RUN cp ./agent/nse/*.nse /usr/local/share/nmap/scripts/ \
+    && nmap --script-updatedb 2>&1 | tail -1
 
 ARG GIT_COMMIT=dev
 ENV GIT_COMMIT=$GIT_COMMIT

@@ -35,12 +35,12 @@ services:
     command: ["sh", "-c", "apk add -q --no-cache curl jq && sh /garage-init.sh"]
 
   postgres:
-    image: postgres:17.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgreql/data
+      - postgres-data:/var/lib/postgresql
     environment:
       POSTGRES_USER: "natlas"
       POSTGRES_PASSWORD: "natlas-dev-password-do-not-use"

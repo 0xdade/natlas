@@ -7,6 +7,7 @@ from agent.context import ScanContext
 from agent.plugins import Plugin
 from agent.plugins.masscan import MasscanPlugin
 from agent.plugins.nmap import NmapPlugin
+from agent.plugins.whatweb import WhatWebPlugin
 
 log = logging.getLogger(__name__)
 
@@ -18,10 +19,11 @@ class PluginRunner:
         self._plugins: list[Plugin] = [
             MasscanPlugin(),
             NmapPlugin(),
+            WhatWebPlugin(),
         ]
 
-    def _enabled(self) -> list[Plugin]:
-        return [p for p in self._plugins if p.enabled()]
+    def _enabled(self, server_plugins: list[str]) -> list[Plugin]:
+        return [p for p in self._plugins if p.name in server_plugins and p.enabled()]
 
     def _sorted(self, plugins: list[Plugin]) -> list[Plugin]:
         """Topological sort respecting depends_on, ignoring disabled plugins."""
@@ -45,7 +47,7 @@ class PluginRunner:
         return result
 
     def run(self, ctx: ScanContext) -> ScanContext:
-        plugins = self._sorted(self._enabled())
+        plugins = self._sorted(self._enabled(ctx.enabled_plugins))
         log.info(
             "Scan pipeline for %s: %s",
             ctx.target,

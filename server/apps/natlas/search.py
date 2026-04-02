@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Q
+from djangoql.schema import DateTimeField as DjangoQLDateTimeField
 from djangoql.schema import DjangoQLSchema, IntField, StrField
 from netfields import InetAddressField
 
@@ -69,6 +70,50 @@ class NmapField(StrField):
         return ~q if invert else q
 
 
+class CertSubjectField(StrField):
+    model = ScanResult
+    name = "cert_subject"
+
+    def get_lookup_name(self) -> str:
+        return "ports__certificates__subject_cn"
+
+
+class CertIssuerField(StrField):
+    model = ScanResult
+    name = "cert_issuer"
+
+    def get_lookup_name(self) -> str:
+        return "ports__certificates__issuer_cn"
+
+
+class CertSha1Field(StrField):
+    model = ScanResult
+    name = "cert_sha1"
+
+    def get_lookup_name(self) -> str:
+        return "ports__certificates__fingerprint_sha1"
+
+
+class CertSanField(StrField):
+    """Search by Subject Alternative Name (exact element match against the array)."""
+
+    model = ScanResult
+    name = "cert_san"
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        invert = operator in ("!=", "not in")
+        q = Q(ports__certificates__subject_alt_names__contains=[value])
+        return ~q if invert else q
+
+
+class CertExpiresField(DjangoQLDateTimeField):
+    model = ScanResult
+    name = "cert_expires"
+
+    def get_lookup_name(self) -> str:
+        return "ports__certificates__not_valid_after"
+
+
 class AgentField(StrField):
     model = ScanResult
     name = "agent"
@@ -104,6 +149,11 @@ class HostSearchSchema(DjangoQLSchema):
                 AgentField(),
                 SubnetField(),
                 NmapField(),
+                CertSubjectField(),
+                CertIssuerField(),
+                CertSha1Field(),
+                CertSanField(),
+                CertExpiresField(),
             ]
         return []
 

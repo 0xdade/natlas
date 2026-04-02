@@ -40,7 +40,7 @@ class ParsedPort:
 
 
 def _table_to_dict(table_elem: ET.Element) -> dict[str, str]:
-    """Collect direct <elem key="..."> children of a <table> into a dict."""
+    """Collect direct <elem key="..."> children of any element into a dict."""
     return {
         e.get("key", ""): (e.text or "").strip()
         for e in table_elem.findall("elem")
@@ -75,25 +75,28 @@ def _parse_validity_dt(value: str) -> datetime | None:
         return None
 
 
-def _parse_ssl_cert(script_elem: ET.Element) -> ParsedSSLCertificate | None:
-    """Extract structured certificate data from a <script id="ssl-cert"> element.
+def _parse_cert_from_elem(
+    cert_elem: ET.Element,
+) -> ParsedSSLCertificate | None:
+    """Build a ParsedSSLCertificate from an element that holds cert data.
 
-    Returns None if the element lacks a sha1 fingerprint (used as the
-    deduplication key), so a malformed cert never aborts a submission.
+    Expects ``cert_elem`` to have:
+    - Direct ``<elem key="sha1">`` and ``<elem key="pem">`` children.
+    - Keyed ``<table>`` children for subject, issuer, pubkey, validity,
+      and extensions.
+
+    Used for both the built-in ``ssl-cert`` script (where the element is
+    ``<script>``) and our ``natlas-ssl-cert`` script (where it is a
+    per-cert ``<table>`` child of ``<script>``).
+
+    Returns None when sha1 is absent so a malformed entry never aborts.
     """
-    # sha1 and pem are top-level <elem> children, not inside a <table>.
-    sha1 = ""
-    pem = ""
-    for elem in script_elem.findall("elem"):
-        key = elem.get("key", "")
-        if key == "sha1":
-            sha1 = (elem.text or "").strip()
-        elif key == "pem":
-            pem = (elem.text or "").strip()
-
+    elems = _table_to_dict(cert_elem)
+    sha1 = elems.get("sha1", "")
     if not sha1:
         return None
 
+    pem = elems.get("pem", "")
     subject: dict[str, str] = {}
     issuer: dict[str, str] = {}
     pub_type = ""
@@ -102,7 +105,7 @@ def _parse_ssl_cert(script_elem: ET.Element) -> ParsedSSLCertificate | None:
     not_after: datetime | None = None
     sans: list[str] = []
 
-    for table in script_elem.findall("table"):
+    for table in cert_elem.findall("table"):
         key = table.get("key", "")
         if key == "subject":
             subject = _table_to_dict(table)
@@ -118,7 +121,6 @@ def _parse_ssl_cert(script_elem: ET.Element) -> ParsedSSLCertificate | None:
             not_before = _parse_validity_dt(validity.get("notBefore", ""))
             not_after = _parse_validity_dt(validity.get("notAfter", ""))
         elif key == "extensions":
-            # Each extension is a nested <table> containing name/value <elem>s.
             for ext_table in table.findall("table"):
                 ext = _table_to_dict(ext_table)
                 if "Subject Alternative Name" in ext.get("name", ""):
@@ -126,9 +128,9 @@ def _parse_ssl_cert(script_elem: ET.Element) -> ParsedSSLCertificate | None:
 
     return ParsedSSLCertificate(
         fingerprint_sha1=sha1,
-        subject_cn=subject.get("commonName", ""),
+        subject_cn=subject.get("commonName", "") or elems.get("subject_cn", ""),
         subject=subject,
-        issuer_cn=issuer.get("commonName", ""),
+        issuer_cn=issuer.get("commonName", "") or elems.get("issuer_cn", ""),
         issuer=issuer,
         not_valid_before=not_before,
         not_valid_after=not_after,
@@ -137,6 +139,28 @@ def _parse_ssl_cert(script_elem: ET.Element) -> ParsedSSLCertificate | None:
         subject_alt_names=sans,
         pem=pem,
     )
+
+
+def _parse_ssl_cert(script_elem: ET.Element) -> ParsedSSLCertificate | None:
+    """Parse a <script id="ssl-cert"> element (built-in nmap script).
+
+    sha1/pem are top-level <elem> children of <script>.
+    """
+    return _parse_cert_from_elem(script_elem)
+
+
+def _parse_natlas_ssl_cert(script_elem: ET.Element) -> list[ParsedSSLCertificate]:
+    """Parse a <script id="natlas-ssl-cert"> element (custom natlas script).
+
+    Returns one cert per unique SNI probe; each is a direct <table> child
+    of <script> with sha1/pem/sni as <elem> children inside that table.
+    """
+    certs = []
+    for cert_table in script_elem.findall("table"):
+        cert = _parse_cert_from_elem(cert_table)
+        if cert is not None:
+            certs.append(cert)
+    return certs
 
 
 def parse_xml(raw_xml: str) -> list[ParsedPort]:
@@ -181,6 +205,8 @@ def parse_xml(raw_xml: str) -> list[ParsedPort]:
                     cert = _parse_ssl_cert(script_elem)
                     if cert is not None:
                         parsed.ssl_certificates.append(cert)
+                elif name == "natlas-ssl-cert":
+                    parsed.ssl_certificates.extend(_parse_natlas_ssl_cert(script_elem))
 
             ports.append(parsed)
 

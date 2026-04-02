@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
-from agent import config
 from agent.context import ScanContext
 from agent.plugins import Plugin
 
@@ -17,7 +17,7 @@ class MasscanPlugin(Plugin):
     name = "masscan"
 
     def enabled(self) -> bool:
-        return config.USE_MASSCAN
+        return shutil.which("masscan") is not None
 
     def run(self, ctx: ScanContext) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

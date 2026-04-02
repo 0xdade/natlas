@@ -57,6 +57,17 @@ class NmapPlugin(Plugin):
                     _build_port_spec(ctx.masscan.discovered_ports),
                 ]
 
+            hostnames = [
+                d.name for d in ctx.dns_names if d.record_type in ("A", "AAAA")
+            ]
+            if hostnames:
+                extra_args += [
+                    "--script",
+                    "natlas-ssl-cert,natlas-http-title",
+                    "--script-args",
+                    "natlas.hostnames=" + "|".join(hostnames),
+                ]
+
             cmd = [
                 "nmap",
                 *extra_args,

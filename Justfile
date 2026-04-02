@@ -7,6 +7,9 @@ build:
 bash:
     docker compose run -it --rm server bash
 
+manage *args:
+    docker compose run --rm server python manage.py {{args}}
+
 shell:
     docker compose run -it --rm server python manage.py shell
 

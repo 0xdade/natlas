@@ -6,6 +6,7 @@ import httpx
 
 from agent import config
 from agent.context import ScanContext
+from agent.plugins.whatweb import serialize as serialize_whatweb
 
 
 class ServerClient:
@@ -39,6 +40,7 @@ class ServerClient:
                 "raw_nmap": ctx.nmap.text,
                 "raw_xml": ctx.nmap.xml,
                 "raw_gnmap": ctx.nmap.gnmap,
+                "raw_whatweb": serialize_whatweb(ctx),
                 "scan_start": ctx.scan_start.isoformat(),
                 "scan_stop": ctx.scan_stop.isoformat(),
             },
