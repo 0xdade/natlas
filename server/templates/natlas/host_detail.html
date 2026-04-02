@@ -119,6 +119,7 @@
     <span class="status-dot {% if latest.is_up %}up{% else %}down{% endif %}"></span>
     {{ latest.target }}
   </div>
+  <c-raw-links :target="latest.target" :scan_id="latest.id" />
 </div>
 
 <div class="host-detail-meta">

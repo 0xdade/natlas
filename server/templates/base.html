@@ -50,17 +50,26 @@
       letter-spacing: -0.01em;
     }
 
-    nav.site-nav .version {
-      margin-left: auto;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--color-text-muted);
+    body {
+      display: flex;
+      flex-direction: column;
     }
 
     main {
+      flex: 1;
       max-width: 1100px;
+      width: 100%;
       margin: 0 auto;
       padding: 1.5rem;
+    }
+
+    footer.site-footer {
+      padding: 0.75rem 1.5rem;
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
     }
   </style>
   {% block extra_css %}{% endblock %}
@@ -82,10 +91,10 @@
     <a href="{% url 'web:dashboard' %}">Dashboard</a>
     <a href="{% url 'web:hosts' %}">Hosts</a>
     {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
-    <span class="version">{{ git_version }}</span>
   </nav>
   <main>
     {% block content %}{% endblock %}
   </main>
+  <footer class="site-footer">{{ git_version }}</footer>
 </body>
 </html>

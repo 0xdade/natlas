@@ -35,3 +35,20 @@ class IndexedFieldsSchema(DjangoQLSchema):
 
 class DjangoQLAdminMixin(DjangoQLSearchMixin):
     djangoql_schema = IndexedFieldsSchema
+    djangoql_extra_fields: list[str] = []
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        extra = cls.djangoql_extra_fields
+        if extra:
+            base_schema = cls.djangoql_schema
+
+            class _Schema(base_schema):  # type: ignore[valid-type]
+                def get_fields(self, model):  # type: ignore[override]
+                    fields = super().get_fields(model)
+                    for f in extra:
+                        if f not in fields:
+                            fields.append(f)
+                    return fields
+
+            cls.djangoql_schema = _Schema

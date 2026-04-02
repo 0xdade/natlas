@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid6
+from django.conf import settings
 from django.db import transaction
 from django.http import HttpRequest
 from django.utils.timezone import now
@@ -11,6 +12,7 @@ from apps.natlas.models.agent import Agent
 from apps.natlas.models.dns import DNSRecord
 from apps.natlas.models.port import Port, Script
 from apps.natlas.models.scan import ScanResult
+from apps.natlas.models.ssl_certificate import SSLCertificate
 from apps.natlas.models.task import ScanTask
 from apps.natlas.schemas.agents import (
     ClaimResponseSchema,
@@ -60,6 +62,7 @@ def claim_task(request: HttpRequest) -> tuple[int, ClaimResponseSchema | None]:
         scan_id=scan_id,
         target=str(task.target),
         dns_names=dns_names,
+        enabled_plugins=settings.NATLAS_ENABLED_PLUGINS,
     )
 
 
@@ -104,6 +107,23 @@ def submit_result(
             )
             for s in p.scripts:
                 Script.objects.create(port=port, name=s.name, output=s.output)
+            for c in p.ssl_certificates:
+                cert, _ = SSLCertificate.objects.get_or_create(
+                    fingerprint_sha1=c.fingerprint_sha1,
+                    defaults={
+                        "subject_cn": c.subject_cn,
+                        "subject": c.subject,
+                        "issuer_cn": c.issuer_cn,
+                        "issuer": c.issuer,
+                        "not_valid_before": c.not_valid_before,
+                        "not_valid_after": c.not_valid_after,
+                        "public_key_type": c.public_key_type,
+                        "public_key_bits": c.public_key_bits,
+                        "subject_alt_names": c.subject_alt_names,
+                        "pem": c.pem,
+                    },
+                )
+                cert.ports.add(port)
 
         task.status = ScanTask.Status.COMPLETED
         task.completed_at = completed

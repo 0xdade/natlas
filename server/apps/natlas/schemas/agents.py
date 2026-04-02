@@ -19,6 +19,7 @@ class ClaimResponseSchema(Schema):
     scan_id: uuid.UUID
     target: str
     dns_names: list[DNSNameSchema]
+    enabled_plugins: list[str]
 
 
 class SubmitResultSchema(Schema):
@@ -29,6 +30,7 @@ class SubmitResultSchema(Schema):
     raw_nmap: str = ""
     raw_xml: str = ""
     raw_gnmap: str = ""
+    raw_whatweb: str = ""
     scan_start: datetime
     scan_stop: datetime
 

@@ -241,6 +241,15 @@ if DEBUG:
         "schedule": 2.0,  # seconds
     }
 
+# Plugins the server asks agents to run. Agents only run plugins in this list
+# (provided the tool is also installed locally on the agent).
+# Override via comma-separated env var: NATLAS_ENABLED_PLUGINS=nmap,masscan,whatweb
+NATLAS_ENABLED_PLUGINS: list[str] = [
+    p.strip()
+    for p in os.environ.get("NATLAS_ENABLED_PLUGINS", "nmap,whatweb").split(",")
+    if p.strip()
+]
+
 # Scan cycle tuning
 # Fraction of total scope to keep as pending ScanTasks. The tick refills
 # the queue when pending drops below this threshold and gates new cycle

@@ -1,0 +1,30 @@
+<style>
+  .raw-links {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: auto;
+    align-items: center;
+  }
+
+  .raw-link {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-text-muted);
+    line-height: 1;
+  }
+
+  .raw-link:hover {
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
+    text-decoration: none;
+  }
+</style>
+
+<div class="raw-links">
+  <a class="raw-link" href="{% url 'web:scan_raw' target=target scan_id=scan_id fmt='nmap' %}">nmap</a>
+  <a class="raw-link" href="{% url 'web:scan_raw' target=target scan_id=scan_id fmt='gnmap' %}">gnmap</a>
+  <a class="raw-link" href="{% url 'web:scan_raw' target=target scan_id=scan_id fmt='xml' %}">xml</a>
+</div>

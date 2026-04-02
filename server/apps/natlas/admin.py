@@ -13,6 +13,8 @@ from pygments.lexers import JsonLexer
 from apps.core.admin import DjangoQLAdminMixin
 from apps.natlas.models import ScanCycle, ScanResult, ScopeItem, Tag
 from apps.natlas.models.agent import Agent
+from apps.natlas.models.dns import DNSRecord
+from apps.natlas.models.ssl_certificate import SSLCertificate
 from apps.natlas.models.task import ScanTask
 
 
@@ -102,6 +104,31 @@ class TagAdmin(DjangoQLAdminMixin, admin.ModelAdmin[Tag]):
     @admin.display(description="Addresses")
     def address_count(self, obj: Tag) -> int:
         return obj.address_count
+
+
+@admin.register(DNSRecord)
+class DNSRecordAdmin(DjangoQLAdminMixin, admin.ModelAdmin[DNSRecord]):
+    list_display = [
+        "name",
+        "record_type",
+        "value",
+        "resolved_ip",
+        "first_seen",
+        "last_seen",
+    ]
+    list_filter = ["record_type"]
+    search_fields = ["name", "value", "resolved_ip"]
+    readonly_fields = ["name_reversed", "first_seen", "last_seen"]
+    fields = [
+        "name",
+        "record_type",
+        "value",
+        "resolved_ip",
+        "name_reversed",
+        "first_seen",
+        "last_seen",
+    ]
+    djangoql_extra_fields = ["name", "name_reversed"]
 
 
 @admin.register(ScopeItem)
@@ -326,3 +353,69 @@ class ScanResultAdmin(ScanDataAdmin):
         ("Raw Data", {"fields": ["raw_data_pretty"], "classes": ["collapse"]}),
     ]
     readonly_fields = [*ScanDataAdmin.readonly_fields, "raw_nmap"]
+
+
+@admin.register(SSLCertificate)
+class SSLCertificateAdmin(DjangoQLAdminMixin, admin.ModelAdmin[SSLCertificate]):
+    list_display = [
+        "subject_cn",
+        "issuer_cn",
+        "not_valid_before",
+        "not_valid_after",
+        "is_expired",
+        "public_key_type",
+        "public_key_bits",
+        "fingerprint_sha1",
+        "first_seen",
+        "last_seen",
+    ]
+    search_fields = ["subject_cn", "issuer_cn", "fingerprint_sha1", "subject_alt_names"]
+    list_filter = ["public_key_type"]
+    readonly_fields = [
+        "fingerprint_sha1",
+        "subject",
+        "issuer",
+        "subject_alt_names",
+        "pem",
+        "first_seen",
+        "last_seen",
+        "is_expired",
+    ]
+    fieldsets = [
+        (
+            "Certificate",
+            {
+                "fields": [
+                    "fingerprint_sha1",
+                    "subject_cn",
+                    "subject",
+                    "issuer_cn",
+                    "issuer",
+                    "subject_alt_names",
+                ]
+            },
+        ),
+        (
+            "Validity",
+            {"fields": ["not_valid_before", "not_valid_after", "is_expired"]},
+        ),
+        (
+            "Public Key",
+            {"fields": ["public_key_type", "public_key_bits"]},
+        ),
+        (
+            "Raw",
+            {"fields": ["pem"], "classes": ["collapse"]},
+        ),
+        (
+            "Observations",
+            {"fields": ["ports", "first_seen", "last_seen"]},
+        ),
+    ]
+
+    @admin.display(description="Expired", boolean=True)
+    def is_expired(self, obj: SSLCertificate) -> bool:
+        return obj.is_expired
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False

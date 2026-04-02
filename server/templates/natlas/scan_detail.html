@@ -70,6 +70,7 @@
 
 <div class="scan-detail-header">
   <div class="scan-detail-ip">{{ scan.target }}</div>
+  <c-raw-links :target="scan.target" :scan_id="scan.id" />
 </div>
 
 <div class="scan-detail-meta">

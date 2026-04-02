@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from django.core.paginator import Page, Paginator
 from django.db.models import Count, Exists, OuterRef, Q, Subquery
-from django.http import Http404, HttpRequest
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from djangoql.exceptions import DjangoQLError
 from djangoql.queryset import apply_search
@@ -124,3 +124,31 @@ def scan_detail(
         id=scan_id,
     )
     return 200, ScanDetailResponseSchema(scan=scan, target=target)
+
+
+_RAW_FORMATS: dict[str, str] = {
+    "xml": "raw_xml",
+    "gnmap": "raw_gnmap",
+    "nmap": "raw_nmap",
+}
+
+
+@router.get("/hosts/{target}/{scan_id}/{fmt}/")
+def scan_raw(
+    request: HttpRequest,
+    target: str,
+    scan_id: uuid.UUID,
+    fmt: Literal["xml", "gnmap", "nmap"],
+) -> HttpResponse:
+    scan = get_object_or_404(ScanResult, target=target, id=scan_id)
+
+    # raw_nmap has a dedicated model field; xml and gnmap live in raw_data.
+    if fmt == "nmap":
+        content = scan.raw_nmap
+    else:
+        content = scan.raw_data.get(_RAW_FORMATS[fmt], "")
+
+    if not content:
+        raise Http404
+
+    return HttpResponse(content, content_type="text/plain; charset=utf-8")
