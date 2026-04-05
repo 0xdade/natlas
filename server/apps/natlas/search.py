@@ -6,54 +6,10 @@ from djangoql.schema import DjangoQLSchema, IntField, RelationField, StrField
 from netfields import InetAddressField
 
 from apps.natlas.models.dns import DNSRecord
-from apps.natlas.models.port import Script
+from apps.natlas.models.port import Port, Script
 from apps.natlas.models.scan import ScanResult
 from apps.natlas.models.scope import Tag
 from apps.natlas.models.ssl_certificate import SSLCertificate
-
-
-class PortNumberField(IntField):
-    model = ScanResult
-    name = "port"
-
-    def get_lookup_name(self) -> str:
-        return "ports__port_number"
-
-
-class ProtocolField(StrField):
-    model = ScanResult
-    name = "protocol"
-    suggest_options = True
-
-    def get_lookup_name(self) -> str:
-        return "ports__protocol"
-
-    def get_options(self, search: str) -> list[str]:
-        return [p for p in ("tcp", "udp") if search.lower() in p]
-
-
-class ServiceField(StrField):
-    model = ScanResult
-    name = "service"
-
-    def get_lookup_name(self) -> str:
-        return "ports__service_name"
-
-
-class ProductField(StrField):
-    model = ScanResult
-    name = "product"
-
-    def get_lookup_name(self) -> str:
-        return "ports__service_product"
-
-
-class VersionField(StrField):
-    model = ScanResult
-    name = "version"
-
-    def get_lookup_name(self) -> str:
-        return "ports__service_version"
 
 
 class NmapField(StrField):
@@ -76,6 +32,56 @@ class _AbsoluteLookup:
         val = value if operator in ("~", "!~") else self.get_lookup_value(value)  # type: ignore[attr-defined]
         q = Q(**{f"{search}{op}": val})
         return ~q if invert else q
+
+
+# ── Port fields (port.num, port.proto, port.svc, port.product, port.ver) ──────
+
+
+class _PortNumField(_AbsoluteLookup, IntField):
+    model = Port
+    name = "num"
+
+    def get_lookup_name(self) -> str:
+        return "ports__port_number"
+
+
+class _PortProtoField(_AbsoluteLookup, StrField):
+    model = Port
+    name = "proto"
+    suggest_options = True
+
+    def get_lookup_name(self) -> str:
+        return "ports__protocol"
+
+    def get_options(self, search: str) -> list[str]:
+        return [p for p in ("tcp", "udp") if search.lower() in p]
+
+
+class _PortSvcField(_AbsoluteLookup, StrField):
+    model = Port
+    name = "svc"
+
+    def get_lookup_name(self) -> str:
+        return "ports__service_name"
+
+
+class _PortProductField(_AbsoluteLookup, StrField):
+    model = Port
+    name = "product"
+
+    def get_lookup_name(self) -> str:
+        return "ports__service_product"
+
+
+class _PortVerField(_AbsoluteLookup, StrField):
+    model = Port
+    name = "ver"
+
+    def get_lookup_name(self) -> str:
+        return "ports__service_version"
+
+
+# ── Script fields (script.name, script.content, script.matches) ───────────────
 
 
 class _ScriptNameField(_AbsoluteLookup, StrField):
@@ -103,7 +109,7 @@ class _ScriptMatchesField(StrField):
 
     The content part is matched case-insensitively (operator =, !=) or as a
     regex (operator ~, !~).  Either part may be omitted:
-        script.matches = ":Apache"   → any script whose output contains "Apache"
+        script.matches = ":Apache"      → any script whose output contains "Apache"
         script.matches = "http-title:"  → any script named "http-title"
     """
 
@@ -125,6 +131,9 @@ class _ScriptMatchesField(StrField):
         exists_q = Q(Exists(Script.objects.filter(**script_filters)))
         invert = operator in ("!=", "!~")
         return ~exists_q if invert else exists_q
+
+
+# ── DNS fields (dns.name, dns.domain) ─────────────────────────────────────────
 
 
 class _DNSNameField(StrField):
@@ -171,6 +180,9 @@ class _DNSDomainField(StrField):
         return ~exists_q if invert else exists_q
 
 
+# ── SSL fields (ssl.subject, ssl.issuer, ssl.sha1, ssl.san, ssl.expires) ──────
+
+
 class _SSLSubjectField(_AbsoluteLookup, StrField):
     model = SSLCertificate
     name = "subject"
@@ -215,6 +227,9 @@ class _SSLExpiresField(_AbsoluteLookup, DjangoQLDateTimeField):
         return "ports__certificates__not_valid_after"
 
 
+# ── Host-level fields ──────────────────────────────────────────────────────────
+
+
 class TagField(StrField):
     model = ScanResult
     name = "tag"
@@ -257,24 +272,31 @@ class SubnetField(StrField):
         return ~q if invert else q
 
 
+# ── Schema ─────────────────────────────────────────────────────────────────────
+
+
 class HostSearchSchema(DjangoQLSchema):
     def get_fields(self, model: type) -> list:
         if model == ScanResult:
             return [
                 "target",
                 "scanned_at",
-                PortNumberField(),
-                ProtocolField(),
-                ServiceField(),
-                ProductField(),
-                VersionField(),
                 TagField(),
                 AgentField(),
                 SubnetField(),
                 NmapField(),
+                RelationField(ScanResult, "port", Port),
                 RelationField(ScanResult, "dns", DNSRecord),
                 RelationField(ScanResult, "script", Script),
                 RelationField(ScanResult, "ssl", SSLCertificate),
+            ]
+        if model == Port:
+            return [
+                _PortNumField(),
+                _PortProtoField(),
+                _PortSvcField(),
+                _PortProductField(),
+                _PortVerField(),
             ]
         if model == DNSRecord:
             return [
