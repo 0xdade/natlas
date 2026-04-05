@@ -85,8 +85,9 @@ OIDC_OP_USER_ENDPOINT: str = os.environ.get("OIDC_OP_USER_ENDPOINT", "")
 OIDC_OP_JWKS_ENDPOINT: str = os.environ.get("OIDC_OP_JWKS_ENDPOINT", "")
 OIDC_RP_SIGN_ALGO: str = os.environ.get("OIDC_RP_SIGN_ALGO", "RS256")
 # Where to send users after a successful OIDC login / logout.
+LOGIN_URL: str = "/auth/login/"
 LOGIN_REDIRECT_URL: str = "/"
-LOGOUT_REDIRECT_URL: str = "/"
+LOGOUT_REDIRECT_URL: str = "/auth/login/"
 
 # Prefix prepended to the user-visible token string for each API key type.
 # Override in deployment settings to match your application's brand/namespace.

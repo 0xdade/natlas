@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing
 
 import uuid6
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVector
 from django.db import models
@@ -33,6 +34,7 @@ class ScanResult(models.Model):
     raw_data = models.JSONField()
 
     raw_nmap = models.TextField(blank=True, default="")
+    tags = ArrayField(models.CharField(max_length=128), default=list, blank=True)
 
     @property
     def port_count(self) -> int:
@@ -40,6 +42,14 @@ class ScanResult(models.Model):
         if (n := getattr(self, "open_port_count", None)) is not None:
             return n  # type: ignore[return-value]
         return self.ports.filter(state="open").count()  # type: ignore[attr-defined]
+
+    @property
+    def open_ports(self) -> list:
+        # Filter from prefetch cache when available; falls back to a query.
+        return sorted(
+            [p for p in self.ports.all() if p.state == "open"],  # type: ignore[attr-defined]
+            key=lambda p: p.port_number,
+        )
 
     @property
     def is_up(self) -> bool:

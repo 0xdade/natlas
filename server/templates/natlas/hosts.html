@@ -1,19 +1,24 @@
 {% extends "base.html" %}
 
 {% block title %}Hosts — Natlas{% endblock %}
+{% block search_q %}{{ q }}{% endblock %}
 
 {% block extra_css %}
 <style>
   .hosts-header {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
     margin-bottom: 1.5rem;
   }
 
   .result-count {
     font-size: 0.85rem;
     color: var(--color-text-muted);
+  }
+
+  .search-error {
+    font-size: 0.8rem;
+    color: var(--color-down);
+    font-family: var(--font-mono);
+    margin-bottom: 0.5rem;
   }
 
   .host-list {
@@ -32,10 +37,13 @@
 
 {% block content %}
 <div class="hosts-header">
-  <c-search-bar q="{{ q }}" error="{{ error|default:'' }}" />
+  {% if error %}
+  <p class="search-error">{{ error }}</p>
+  {% endif %}
   {% if results.paginator.count %}
     <p class="result-count">
       {{ results.paginator.count }} host{{ results.paginator.count|pluralize }} found
+      {% if q %}for <code>{{ q }}</code>{% endif %}
     </p>
   {% endif %}
 </div>

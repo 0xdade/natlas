@@ -1,6 +1,4 @@
 {% load static %}
-<link rel="stylesheet" type="text/css" href="{% static 'djangoql/css/completion.css' %}" />
-<script src="{% static 'djangoql/js/completion.js' %}"></script>
 <style>
   .search-bar {
     display: flex;
@@ -49,10 +47,6 @@
     font-family: var(--font-mono);
     margin-top: 0.25rem;
   }
-  .djangoql-completion {
-    background: var(--color-surface);
-    color: var(--color-text-muted);
-  }
 </style>
 
 <form method="get" action="">
@@ -72,7 +66,7 @@
       // or an URL from which this information could be loaded asynchronously
       introspections: {{ introspections| safe }},
 
-    selector: 'textarea[name=q]',
+    selector: '.search-bar textarea',
 
     // optional, you can provide URL for Syntax Help link here.
     // If not specified, Syntax Help link will be hidden.

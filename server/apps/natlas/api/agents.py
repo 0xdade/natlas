@@ -22,6 +22,7 @@ from apps.natlas.schemas.agents import (
     SubmitResultSchema,
 )
 from apps.natlas.services.nmap_parser import parse_xml
+from apps.natlas.services.scope import get_tags_for_target
 
 router = Router(auth=AgentAuth())
 
@@ -92,6 +93,7 @@ def submit_result(
             scan_stop=payload.scan_stop,
             raw_data=payload.model_dump(mode="json"),
             raw_nmap=payload.raw_nmap,
+            tags=get_tags_for_target(task.target),
         )
 
         for p in parse_xml(payload.raw_xml):

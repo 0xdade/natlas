@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from djangoql.schema import DateTimeField as DjangoQLDateTimeField
 from djangoql.schema import DjangoQLSchema, IntField, RelationField, StrField
 from netfields import InetAddressField
 
+from apps.natlas.models.dns import DNSRecord
+from apps.natlas.models.port import Script
 from apps.natlas.models.scan import ScanResult
+from apps.natlas.models.scope import Tag
 from apps.natlas.models.ssl_certificate import SSLCertificate
 
 
@@ -53,14 +56,6 @@ class VersionField(StrField):
         return "ports__service_version"
 
 
-class ScriptField(StrField):
-    model = ScanResult
-    name = "script"
-
-    def get_lookup_name(self) -> str:
-        return "ports__scripts__name"
-
-
 class NmapField(StrField):
     model = ScanResult
     name = "nmap"
@@ -81,6 +76,99 @@ class _AbsoluteLookup:
         val = value if operator in ("~", "!~") else self.get_lookup_value(value)  # type: ignore[attr-defined]
         q = Q(**{f"{search}{op}": val})
         return ~q if invert else q
+
+
+class _ScriptNameField(_AbsoluteLookup, StrField):
+    model = Script
+    name = "name"
+
+    def get_lookup_name(self) -> str:
+        return "ports__scripts__name"
+
+
+class _ScriptContentField(_AbsoluteLookup, StrField):
+    model = Script
+    name = "content"
+
+    def get_lookup_name(self) -> str:
+        return "ports__scripts__output"
+
+
+class _ScriptMatchesField(StrField):
+    """
+    Correlated EXISTS lookup that tests name and content on the *same* script row.
+
+    Syntax:  script.matches = "http-title:Login"
+               └ name part ┘  └ content part ┘
+
+    The content part is matched case-insensitively (operator =, !=) or as a
+    regex (operator ~, !~).  Either part may be omitted:
+        script.matches = ":Apache"   → any script whose output contains "Apache"
+        script.matches = "http-title:"  → any script named "http-title"
+    """
+
+    model = Script
+    name = "matches"
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        name_part, _, content_part = str(value).partition(":")
+
+        script_filters: dict[str, object] = {"port__scan_result": OuterRef("pk")}
+        if name_part:
+            script_filters["name"] = name_part
+        if content_part:
+            if operator in ("~", "!~"):
+                script_filters["output__iregex"] = content_part
+            else:
+                script_filters["output__icontains"] = content_part
+
+        exists_q = Q(Exists(Script.objects.filter(**script_filters)))
+        invert = operator in ("!=", "!~")
+        return ~exists_q if invert else exists_q
+
+
+class _DNSNameField(StrField):
+    """Exact/regex match on a DNS record name pointing at this host."""
+
+    model = DNSRecord
+    name = "name"
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        op, invert = self.get_operator(operator)
+        val = value if operator in ("~", "!~") else self.get_lookup_value(value)
+        exists_q = Q(
+            Exists(
+                DNSRecord.objects.filter(
+                    **{"resolved_ip": OuterRef("target"), f"name{op}": val}
+                )
+            )
+        )
+        return ~exists_q if invert else exists_q
+
+
+class _DNSDomainField(StrField):
+    """Match this host if any DNS record falls at or under the given domain.
+
+    ``dns.domain = "example.com"`` matches ``example.com`` itself as well as
+    any subdomain (``www.example.com``, ``mail.example.com``, …).  Uses the
+    ``name_reversed`` generated column so the lookup hits the prefix index.
+    """
+
+    model = DNSRecord
+    name = "domain"
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        reversed_val = ".".join(reversed(str(value).split(".")))
+        invert = operator in ("!=", "not in")
+        exists_q = Q(
+            Exists(
+                DNSRecord.objects.filter(
+                    resolved_ip=OuterRef("target"),
+                    name_reversed__startswith=reversed_val,
+                )
+            )
+        )
+        return ~exists_q if invert else exists_q
 
 
 class _SSLSubjectField(_AbsoluteLookup, StrField):
@@ -127,6 +215,28 @@ class _SSLExpiresField(_AbsoluteLookup, DjangoQLDateTimeField):
         return "ports__certificates__not_valid_after"
 
 
+class TagField(StrField):
+    model = ScanResult
+    name = "tag"
+    suggest_options = True
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        if operator in ("in", "not in"):
+            combined = Q()
+            for v in value:  # type: ignore[union-attr]
+                combined |= Q(tags__contains=[v])
+            return ~combined if operator == "not in" else combined
+        invert = operator == "!="
+        return ~Q(tags__contains=[value]) if invert else Q(tags__contains=[value])
+
+    def get_options(self, search: str) -> list[str]:
+        return list(
+            Tag.objects.filter(name__icontains=search).values_list("name", flat=True)[
+                :20
+            ]
+        )
+
+
 class AgentField(StrField):
     model = ScanResult
     name = "agent"
@@ -158,11 +268,24 @@ class HostSearchSchema(DjangoQLSchema):
                 ServiceField(),
                 ProductField(),
                 VersionField(),
-                ScriptField(),
+                TagField(),
                 AgentField(),
                 SubnetField(),
                 NmapField(),
+                RelationField(ScanResult, "dns", DNSRecord),
+                RelationField(ScanResult, "script", Script),
                 RelationField(ScanResult, "ssl", SSLCertificate),
+            ]
+        if model == DNSRecord:
+            return [
+                _DNSNameField(),
+                _DNSDomainField(),
+            ]
+        if model == Script:
+            return [
+                _ScriptNameField(),
+                _ScriptContentField(),
+                _ScriptMatchesField(),
             ]
         if model == SSLCertificate:
             return [

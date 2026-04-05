@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Natlas{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'djangoql/css/completion.css' %}">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -71,6 +72,105 @@
       font-size: 0.75rem;
       color: var(--color-text-muted);
     }
+
+    /* ── cmd-k trigger ──────────────────────────────────────────────── */
+    .cmdkbar-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: 0.8125rem;
+      padding: 0.3rem 0.6rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .cmdkbar-trigger:hover {
+      border-color: var(--color-accent);
+      color: var(--color-text);
+    }
+
+    .cmdkbar-trigger kbd {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      padding: 0.05rem 0.3rem;
+    }
+
+    /* ── cmd-k overlay ──────────────────────────────────────────────── */
+    #cmdkbar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(2px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 15vh;
+    }
+
+    #cmdkbar-overlay.is-open { display: flex; }
+
+    #cmdkbar {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: calc(var(--radius) * 1.5);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+      color: var(--color-text);
+      width: min(640px, 92vw);
+    }
+
+    .djangoql-completion { z-index: 1001; }
+
+    .cmdkbar-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 0.875rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .cmdkbar-icon {
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+
+    #cmdkbar-q {
+      background: transparent;
+      border: none;
+      color: var(--color-text);
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 0.9375rem;
+      outline: none;
+      resize: none;
+    }
+
+    .cmdkbar-hint {
+      color: var(--color-text-muted);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.875rem;
+      text-align: right;
+    }
+
+    .cmdkbar-hint kbd {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      font-family: var(--font-sans);
+      padding: 0.05rem 0.3rem;
+    }
+
+    .djangoql-completion {
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+    }
   </style>
   {% block extra_css %}{% endblock %}
   <meta name="description" content="Natlas is an open source project designed to provide scalable network scanning and an interface to search through the results. For more information, visit github.com/natlas/natlas">
@@ -88,13 +188,95 @@
 <body>
   <nav class="site-nav">
     <span class="brand">Natlas</span>
+    {% if request.user.is_authenticated %}
     <a href="{% url 'web:dashboard' %}">Dashboard</a>
     <a href="{% url 'web:hosts' %}">Hosts</a>
     {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+    <span style="margin-left:auto;display:flex;align-items:center;gap:1rem;">
+      <button class="cmdkbar-trigger" id="cmdkbar-open" type="button" aria-label="Open search">
+        Search <kbd>⌘K</kbd>
+      </button>
+      <span style="color:var(--color-text-muted);font-size:0.8125rem;">{{ request.user.username }}</span>
+      <form method="post" action="{% url 'natlas_auth:logout' %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" style="background:none;border:none;color:var(--color-accent);cursor:pointer;font-size:0.875rem;padding:0;">Sign out</button>
+      </form>
+    </span>
+    {% else %}
+    <span style="margin-left:auto;">
+      <a href="{% url 'natlas_auth:login' %}">Sign in</a>
+    </span>
+    {% endif %}
   </nav>
   <main>
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">{{ git_version }}</footer>
+
+  {% if request.user.is_authenticated %}
+  <div id="cmdkbar-overlay" aria-hidden="true">
+    <div id="cmdkbar" role="dialog" aria-label="Search hosts" aria-modal="true">
+      <form id="cmdkbar-form" method="get" action="{% url 'web:hosts' %}">
+        <div class="cmdkbar-inner">
+          <svg class="cmdkbar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <textarea id="cmdkbar-q" name="q" rows="1"
+                    placeholder="Search hosts…"
+                    autocomplete="off" spellcheck="false">{% block search_q %}{% endblock %}</textarea>
+        </div>
+      </form>
+      <p class="cmdkbar-hint"><kbd>Enter</kbd> to search &nbsp;·&nbsp; <kbd>Esc</kbd> to close</p>
+    </div>
+  </div>
+
+  <script src="{% static 'djangoql/js/completion.js' %}"></script>
+  <script>
+    (function () {
+      const overlay = document.getElementById('cmdkbar-overlay');
+      const textarea = document.getElementById('cmdkbar-q');
+      const openBtn = document.getElementById('cmdkbar-open');
+
+      function open() {
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden', 'false');
+        textarea.dispatchEvent(new Event('input'));
+        textarea.focus();
+        textarea.select();
+      }
+
+      function close() {
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+
+      openBtn.addEventListener('click', open);
+
+      document.addEventListener('keydown', function (e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+          e.preventDefault();
+          open();
+        }
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
+          close();
+        }
+      });
+
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) close();
+      });
+
+      DjangoQL.DOMReady(function () {
+        new DjangoQL({
+          introspections: '{% url "web:hosts_introspections" %}',
+          selector: '#cmdkbar-q',
+          autoResize: true,
+          syntaxHelp: null,
+        });
+      });
+    }());
+  </script>
+  {% endif %}
 </body>
 </html>

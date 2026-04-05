@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from django.core.paginator import Page, Paginator
 from django.db.models import Count, Exists, OuterRef, Q, Subquery
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from djangoql.exceptions import DjangoQLError
 from djangoql.queryset import apply_search
@@ -34,6 +34,12 @@ class HostsResponseSchema(TemplateSchema):
         arbitrary_types_allowed = True
 
 
+@router.get("/hosts/introspections/")
+def hosts_introspections(request: HttpRequest) -> HttpResponse:
+    data = DjangoQLSchemaSerializer().serialize(HostSearchSchema(ScanResult))
+    return JsonResponse(data)
+
+
 @router.get("/hosts/", response={200: HostsResponseSchema})
 def hosts(
     request: HttpRequest, q: str = "", page: int = 1
@@ -53,6 +59,7 @@ def hosts(
         ScanResult.objects.filter(id__in=latest_ids)
         .filter(has_open_port)
         .select_related("agent")
+        .prefetch_related("ports")
         .annotate(open_port_count=Count("ports", filter=Q(ports__state="open")))
         .order_by("-scanned_at")
     )

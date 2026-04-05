@@ -1,0 +1,54 @@
+<style>
+  .port-table {
+    width: 100%;
+    border-top: 1px solid var(--color-border);
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .port-table td {
+    padding: 0.2rem 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 20rem;
+  }
+
+  .port-table tr:not(:last-child) td {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .port-table .col-port {
+    color: var(--color-accent);
+    font-weight: 600;
+    width: 4rem;
+  }
+
+  .port-table .col-proto {
+    color: var(--color-text-muted);
+    width: 3rem;
+  }
+
+  .port-table .col-service {
+    color: var(--color-text);
+    width: 8rem;
+  }
+
+  .port-table .col-version {
+    color: var(--color-text-muted);
+  }
+</style>
+
+<table class="port-table">
+  {% for port in ports %}
+    {% with svc=port.service_name prod=port.service_product ver=port.service_version %}
+    <tr>
+      <td class="col-port">{{ port.port_number }}</td>
+      <td class="col-proto">{{ port.protocol }}</td>
+      <td class="col-service">{{ svc }}</td>
+      <td class="col-version" title="{% if prod %}{{ prod }}{% endif %}{% if prod and ver %} {% endif %}{% if ver %}{{ ver }}{% endif %}">{% if prod %}{{ prod }}{% endif %}{% if prod and ver %} {{ ver }}{% elif ver %}{{ ver }}{% endif %}</td>
+    </tr>
+    {% endwith %}
+  {% endfor %}
+</table>
