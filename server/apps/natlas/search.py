@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from django.db.models import Q
 from djangoql.schema import DateTimeField as DjangoQLDateTimeField
-from djangoql.schema import DjangoQLSchema, IntField, StrField
+from djangoql.schema import DjangoQLSchema, IntField, RelationField, StrField
 from netfields import InetAddressField
 
 from apps.natlas.models.scan import ScanResult
+from apps.natlas.models.ssl_certificate import SSLCertificate
 
 
 class PortNumberField(IntField):
@@ -70,35 +71,47 @@ class NmapField(StrField):
         return ~q if invert else q
 
 
-class CertSubjectField(StrField):
-    model = ScanResult
-    name = "cert_subject"
+class _AbsoluteLookup:
+    """Mixin: use get_lookup_name() as an absolute ORM path, ignoring the
+    DjangoQL relation-traversal prefix that is normally prepended to it."""
+
+    def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
+        search = self.get_lookup_name()  # type: ignore[attr-defined]
+        op, invert = self.get_operator(operator)  # type: ignore[attr-defined]
+        val = value if operator in ("~", "!~") else self.get_lookup_value(value)  # type: ignore[attr-defined]
+        q = Q(**{f"{search}{op}": val})
+        return ~q if invert else q
+
+
+class _SSLSubjectField(_AbsoluteLookup, StrField):
+    model = SSLCertificate
+    name = "subject"
 
     def get_lookup_name(self) -> str:
         return "ports__certificates__subject_cn"
 
 
-class CertIssuerField(StrField):
-    model = ScanResult
-    name = "cert_issuer"
+class _SSLIssuerField(_AbsoluteLookup, StrField):
+    model = SSLCertificate
+    name = "issuer"
 
     def get_lookup_name(self) -> str:
         return "ports__certificates__issuer_cn"
 
 
-class CertSha1Field(StrField):
-    model = ScanResult
-    name = "cert_sha1"
+class _SSLSha1Field(_AbsoluteLookup, StrField):
+    model = SSLCertificate
+    name = "sha1"
 
     def get_lookup_name(self) -> str:
         return "ports__certificates__fingerprint_sha1"
 
 
-class CertSanField(StrField):
-    """Search by Subject Alternative Name (exact element match against the array)."""
+class _SSLSanField(StrField):
+    """Exact element match against the subject_alt_names array."""
 
-    model = ScanResult
-    name = "cert_san"
+    model = SSLCertificate
+    name = "san"
 
     def get_lookup(self, path: list[str], operator: str, value: object) -> Q:
         invert = operator in ("!=", "not in")
@@ -106,9 +119,9 @@ class CertSanField(StrField):
         return ~q if invert else q
 
 
-class CertExpiresField(DjangoQLDateTimeField):
-    model = ScanResult
-    name = "cert_expires"
+class _SSLExpiresField(_AbsoluteLookup, DjangoQLDateTimeField):
+    model = SSLCertificate
+    name = "expires"
 
     def get_lookup_name(self) -> str:
         return "ports__certificates__not_valid_after"
@@ -149,11 +162,15 @@ class HostSearchSchema(DjangoQLSchema):
                 AgentField(),
                 SubnetField(),
                 NmapField(),
-                CertSubjectField(),
-                CertIssuerField(),
-                CertSha1Field(),
-                CertSanField(),
-                CertExpiresField(),
+                RelationField(ScanResult, "ssl", SSLCertificate),
+            ]
+        if model == SSLCertificate:
+            return [
+                _SSLSubjectField(),
+                _SSLIssuerField(),
+                _SSLSha1Field(),
+                _SSLSanField(),
+                _SSLExpiresField(),
             ]
         return []
 
