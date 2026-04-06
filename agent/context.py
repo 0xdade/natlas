@@ -4,26 +4,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-
-@dataclass
-class DNSName:
-    name: str
-    record_type: str
-    value: str
-
-
-@dataclass
-class NmapConfig:
-    ports: str = "top-100"
-    timing_template: int = 4
-    max_rate: int | None = None
-    scripts: list[str] = field(default_factory=list)
-
-
-@dataclass
-class WhatWebConfig:
-    aggression: int = 1
-    timeout: int = 30
+from natlas_protocol.agents import DNSName
+from natlas_protocol.scan_config import NmapConfig, WhatWebConfig
 
 
 @dataclass

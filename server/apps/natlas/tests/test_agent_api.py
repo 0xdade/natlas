@@ -20,6 +20,7 @@ from apps.natlas.models.cycle import ScanCycle
 from apps.natlas.models.scan import ScanResult
 from apps.natlas.models.scope import ScopeItem
 from apps.natlas.models.task import ScanTask
+from apps.natlas.services.scan_config import get_default_scan_config
 from apps.natlas.tasks import tick_scan_cycle
 
 CIDR_30 = "10.0.0.0/30"  # 4 IPs: .0 - .3
@@ -34,7 +35,7 @@ client = TestClient(router)
 
 def _make_agent(*, is_active: bool = True) -> tuple[Agent, str]:
     raw_token = Agent.generate_token()
-    agent = Agent(is_active=is_active)
+    agent = Agent(is_active=is_active, scan_config=get_default_scan_config())
     agent.set_token(raw_token)
     agent.save()
     return agent, raw_token

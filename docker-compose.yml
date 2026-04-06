@@ -201,6 +201,7 @@ services:
       #- OIDC_DISABLE_LOCAL_AUTH=False
     volumes:
       - ./server:/app
+      - ./protocol:/workspace/protocol
     depends_on:
       postgres:
         condition: service_healthy
@@ -232,6 +233,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
     volumes:
       - ./server:/app
+      - ./protocol:/workspace/protocol
     depends_on:
       postgres:
         condition: service_healthy
@@ -259,6 +261,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
     volumes:
       - ./server:/app
+      - ./protocol:/workspace/protocol
     depends_on:
       postgres:
         condition: service_healthy
@@ -285,6 +288,7 @@ services:
         hard: 10000
     volumes:
       - ./agent:/app/agent
+      - ./protocol:/app/protocol
     depends_on:
       server:
         condition: service_started

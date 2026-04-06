@@ -10,6 +10,7 @@ ENV PATH="/venv/bin:$PATH"
 WORKDIR /workspace
 COPY pyproject.toml uv.lock ./
 COPY server/pyproject.toml ./server/
+COPY protocol/ ./protocol/
 RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --no-dev --package natlas-server
 
 WORKDIR /app

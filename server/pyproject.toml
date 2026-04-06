@@ -21,6 +21,7 @@ dependencies = [
   "django~=5.2",
   "gunicorn~=25.0",
   "mozilla-django-oidc~=5.0",
+  "natlas-protocol",
   "opentelemetry-exporter-otlp-proto-grpc~=1.27",
   "opentelemetry-instrumentation-celery~=0.48b0",
   "opentelemetry-instrumentation-django~=0.48b0",
@@ -89,3 +90,6 @@ addopts = "--cov=apps --cov=config --cov-report=term-missing --cov-report=html"
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+natlas-protocol = {workspace = true}

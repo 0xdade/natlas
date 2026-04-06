@@ -1,6 +1,7 @@
 [project]
 dependencies = [
-  "httpx~=0.28"
+  "httpx~=0.28",
+  "natlas-protocol"
 ]
 name = "natlas-agent"
 requires-python = ">=3.13"
@@ -8,3 +9,6 @@ version = "0.1.0"
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+natlas-protocol = {workspace = true}

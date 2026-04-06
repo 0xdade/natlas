@@ -9,6 +9,7 @@ resolution-markers = [
 [manifest]
 members = [
     "natlas-agent",
+    "natlas-protocol",
     "natlas-server",
 ]
 
@@ -890,10 +891,25 @@ version = "0.1.0"
 source = { virtual = "agent" }
 dependencies = [
     { name = "httpx" },
+    { name = "natlas-protocol" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "httpx", specifier = "~=0.28" }]
+requires-dist = [
+    { name = "httpx", specifier = "~=0.28" },
+    { name = "natlas-protocol", editable = "protocol" },
+]
+
+[[package]]
+name = "natlas-protocol"
+version = "0.1.0"
+source = { editable = "protocol" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = "~=2.0" }]
 
 [[package]]
 name = "natlas-server"
@@ -912,6 +928,7 @@ dependencies = [
     { name = "djangoql" },
     { name = "gunicorn" },
     { name = "mozilla-django-oidc" },
+    { name = "natlas-protocol" },
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-instrumentation-celery" },
     { name = "opentelemetry-instrumentation-django" },
@@ -948,6 +965,7 @@ requires-dist = [
     { name = "djangoql", specifier = "~=0.18" },
     { name = "gunicorn", specifier = "~=25.0" },
     { name = "mozilla-django-oidc", specifier = "~=5.0" },
+    { name = "natlas-protocol", editable = "protocol" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = "~=1.27" },
     { name = "opentelemetry-instrumentation-celery", specifier = "~=0.48b0" },
     { name = "opentelemetry-instrumentation-django", specifier = "~=0.48b0" },

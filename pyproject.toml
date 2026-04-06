@@ -65,4 +65,4 @@ max-complexity = 16
 package = false
 
 [tool.uv.workspace]
-members = ["agent", "server"]
+members = ["agent", "protocol", "server"]

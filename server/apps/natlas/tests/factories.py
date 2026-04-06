@@ -10,6 +10,7 @@ from django.utils.timezone import now
 from apps.natlas.models.agent import Agent
 from apps.natlas.models.port import Port, Script
 from apps.natlas.models.scan import ScanResult
+from apps.natlas.services.scan_config import get_default_scan_config
 
 # Common service profiles: (port, protocol, service, product, version)
 _COMMON_SERVICES: list[tuple[int, str, str, str, str]] = [
@@ -94,6 +95,7 @@ class AgentFactory(factory.django.DjangoModelFactory):
     name = factory.Faker("hostname")
     is_active = True
     token_hash = factory.LazyFunction(lambda: make_password(Agent.generate_token()))
+    scan_config = factory.LazyFunction(get_default_scan_config)
 
 
 class ScanResultFactory(factory.django.DjangoModelFactory):

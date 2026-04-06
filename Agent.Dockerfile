@@ -66,6 +66,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 COPY agent/pyproject.toml ./agent/
+COPY protocol/ ./protocol/
 RUN uv sync --frozen --no-dev --package natlas-agent \
     && setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip $(which nmap)
 

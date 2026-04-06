@@ -15,6 +15,7 @@ from apps.natlas.models.cycle import ScanCycle
 from apps.natlas.models.scan import ScanResult
 from apps.natlas.models.task import ScanTask
 from apps.natlas.services.cycle import advance_scan_cycle, create_scan_cycle
+from apps.natlas.services.scan_config import get_default_scan_config
 from apps.natlas.services.scope import get_tags_for_target
 from apps.natlas.tests.factories import build_realistic_scan, generate_raw_nmap
 
@@ -115,6 +116,7 @@ def mock_agent_tick() -> None:
             "name": "Mock Dev Agent",
             "is_active": True,
             "token_hash": make_password(Agent.generate_token()),
+            "scan_config": get_default_scan_config(),
         },
     )
 

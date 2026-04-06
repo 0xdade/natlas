@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import time
-import uuid
 from datetime import datetime, timezone
+
+from natlas_protocol.agents import ClaimResponse
 
 from agent import config
 from agent.client import ServerClient
-from agent.context import DNSName, NmapConfig, ScanContext, WhatWebConfig
+from agent.context import ScanContext
 from agent.runner import run as scan
 
 logging.basicConfig(
@@ -40,25 +41,15 @@ def main() -> None:
                 time.sleep(config.POLL_INTERVAL)
                 continue
 
-            raw_nmap_cfg = task.get("nmap_config") or {}
-            raw_ww_cfg = task.get("whatweb_config") or {}
-
+            claim = ClaimResponse.model_validate(task)
             ctx = ScanContext(
-                target=task["target"],
-                scan_id=uuid.UUID(task["scan_id"]),
-                task_id=uuid.UUID(task["task_id"]),
-                dns_names=[DNSName(**d) for d in task.get("dns_names", [])],
-                enabled_plugins=task.get("enabled_plugins", []),
-                nmap_config=NmapConfig(
-                    ports=raw_nmap_cfg.get("ports", "top-100"),
-                    timing_template=raw_nmap_cfg.get("timing_template", 4),
-                    max_rate=raw_nmap_cfg.get("max_rate"),
-                    scripts=raw_nmap_cfg.get("scripts", []),
-                ),
-                whatweb_config=WhatWebConfig(
-                    aggression=raw_ww_cfg.get("aggression", 1),
-                    timeout=raw_ww_cfg.get("timeout", 30),
-                ),
+                target=claim.target,
+                scan_id=claim.scan_id,
+                task_id=claim.task_id,
+                dns_names=claim.dns_names,
+                enabled_plugins=claim.enabled_plugins,
+                nmap_config=claim.nmap_config,
+                whatweb_config=claim.whatweb_config,
                 scan_start=datetime.now(timezone.utc),
             )
 
