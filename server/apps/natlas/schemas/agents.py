@@ -5,6 +5,13 @@ from datetime import datetime
 
 from ninja import Schema
 
+from apps.natlas.schemas.scan_config import (
+    NmapConfig,
+    NucleiConfig,
+    ScreenshotConfig,
+    WhatWebConfig,
+)
+
 
 class DNSNameSchema(Schema):
     name: str
@@ -20,6 +27,10 @@ class ClaimResponseSchema(Schema):
     target: str
     dns_names: list[DNSNameSchema]
     enabled_plugins: list[str]
+    nmap_config: NmapConfig
+    nuclei_config: NucleiConfig
+    screenshot_config: ScreenshotConfig
+    whatweb_config: WhatWebConfig
 
 
 class SubmitResultSchema(Schema):

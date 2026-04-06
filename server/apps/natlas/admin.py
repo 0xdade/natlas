@@ -14,6 +14,7 @@ from apps.core.admin import DjangoQLAdminMixin
 from apps.natlas.models import ScanCycle, ScanResult, ScopeItem, Tag
 from apps.natlas.models.agent import Agent
 from apps.natlas.models.dns import DNSRecord
+from apps.natlas.models.scan_config import ScanConfig
 from apps.natlas.models.ssl_certificate import SSLCertificate
 from apps.natlas.models.task import ScanTask
 
@@ -419,3 +420,24 @@ class SSLCertificateAdmin(DjangoQLAdminMixin, admin.ModelAdmin[SSLCertificate]):
 
     def has_add_permission(self, request: HttpRequest) -> bool:
         return False
+
+
+@admin.register(ScanConfig)
+class ScanConfigAdmin(admin.ModelAdmin[ScanConfig]):
+    list_display = ("name", "tier", "enabled_plugins", "updated_at")
+    list_filter = ("tier",)
+    readonly_fields = ("tier", "created_at", "updated_at")
+
+    def get_readonly_fields(
+        self, request: HttpRequest, obj: ScanConfig | None = None
+    ) -> list[str]:
+        if obj and obj.tier == ScanConfig.Tier.SYSTEM_DEFAULT:
+            return [f.name for f in obj._meta.fields]
+        return list(self.readonly_fields)
+
+    def has_delete_permission(
+        self, request: HttpRequest, obj: ScanConfig | None = None
+    ) -> bool:
+        if obj and obj.tier == ScanConfig.Tier.SYSTEM_DEFAULT:
+            return False
+        return super().has_delete_permission(request, obj)

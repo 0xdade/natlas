@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid6
-from django.conf import settings
 from django.db import transaction
 from django.http import HttpRequest
 from django.utils.timezone import now
@@ -20,6 +19,12 @@ from apps.natlas.schemas.agents import (
     FailTaskSchema,
     SubmitAckSchema,
     SubmitResultSchema,
+)
+from apps.natlas.schemas.scan_config import (
+    NmapConfig,
+    NucleiConfig,
+    ScreenshotConfig,
+    WhatWebConfig,
 )
 from apps.natlas.services.nmap_parser import parse_xml
 from apps.natlas.services.scope import get_tags_for_target
@@ -58,12 +63,18 @@ def claim_task(request: HttpRequest) -> tuple[int, ClaimResponseSchema | None]:
         for r in DNSRecord.objects.filter(resolved_ip=task.target)
     ]
 
+    config = agent.scan_config
+
     return 200, ClaimResponseSchema(
         task_id=task.pk,
         scan_id=scan_id,
         target=str(task.target),
         dns_names=dns_names,
-        enabled_plugins=settings.NATLAS_ENABLED_PLUGINS,
+        enabled_plugins=config.enabled_plugins,
+        nmap_config=NmapConfig.model_validate(config.nmap_config),
+        nuclei_config=NucleiConfig.model_validate(config.nuclei_config),
+        screenshot_config=ScreenshotConfig.model_validate(config.screenshot_config),
+        whatweb_config=WhatWebConfig.model_validate(config.whatweb_config),
     )
 
 

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.db import models
 
 from apps.custom_auth.models import BaseApiKey
 
 
 class Agent(BaseApiKey):
     """Represents an authenticated natlas agent instance."""
+
+    scan_config = models.ForeignKey(
+        "natlas.ScanConfig",
+        on_delete=models.PROTECT,
+        related_name="agents",
+    )
 
     def __str__(self) -> str:
         return self.name or str(self.id)
