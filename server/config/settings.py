@@ -55,6 +55,7 @@ _FIRST_PARTY_APPS: list[str] = [
     "apps.instrumentation",
     "apps.auto_admin",
     "apps.custom_auth",
+    "apps.audit",
     "apps.natlas",
 ]
 
@@ -88,6 +89,17 @@ OIDC_RP_SIGN_ALGO: str = os.environ.get("OIDC_RP_SIGN_ALGO", "RS256")
 LOGIN_URL: str = "/auth/login/"
 LOGIN_REDIRECT_URL: str = "/"
 LOGOUT_REDIRECT_URL: str = "/auth/login/"
+
+# Failed-login lockout thresholds.
+# A username or source IP is locked after AUTH_LOCKOUT_MAX_ATTEMPTS failures
+# within AUTH_LOCKOUT_WINDOW_SECONDS. The lockout lasts AUTH_LOCKOUT_DURATION_SECONDS.
+AUTH_LOCKOUT_MAX_ATTEMPTS: int = int(os.environ.get("AUTH_LOCKOUT_MAX_ATTEMPTS", "5"))
+AUTH_LOCKOUT_WINDOW_SECONDS: int = int(
+    os.environ.get("AUTH_LOCKOUT_WINDOW_SECONDS", "300")
+)
+AUTH_LOCKOUT_DURATION_SECONDS: int = int(
+    os.environ.get("AUTH_LOCKOUT_DURATION_SECONDS", "900")
+)
 
 # Prefix prepended to the user-visible token string for each API key type.
 # Override in deployment settings to match your application's brand/namespace.

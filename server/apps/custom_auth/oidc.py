@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
+from apps.audit.log import EventType, TargetType, log_event
 from apps.custom_auth.models.user import User
 
 
@@ -16,7 +17,30 @@ class OIDCBackend(OIDCAuthenticationBackend):
 
     def create_user(self, claims: dict[str, object]) -> User:
         email = self.get_username(claims)
-        return User.objects.create_user(email)
+        user = User.objects.create_user(email)
+        log_event(
+            EventType.USER_CREATED,
+            request=self.request,
+            target_type=TargetType.USER,
+            target_id=str(user.pk),
+            target_repr=str(user),
+            properties={"via": "oidc"},
+        )
+        return user
 
     def update_user(self, user: User, claims: dict[str, object]) -> User:
+        return user
+
+    def authenticate(self, request: object, **kwargs: object) -> User | None:
+        user = super().authenticate(request, **kwargs)  # type: ignore[arg-type]
+        if user is not None:
+            log_event(
+                EventType.USER_LOGIN,
+                request=self.request,
+                actor_user=user,
+                target_type=TargetType.USER,
+                target_id=str(user.pk),
+                target_repr=str(user),
+                properties={"via": "oidc"},
+            )
         return user
