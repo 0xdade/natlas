@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load core %}
 
 {% block title %}Dashboard — Natlas{% endblock %}
 
@@ -196,9 +197,7 @@
       <div class="stat-row">
         <span class="stat-label">Scan duration</span>
         <span class="stat-value accent">
-          {% if status.last_completed_cycle.scan_duration_seconds %}
-            {{ status.last_completed_cycle.scan_duration_seconds|floatformat:0 }}s
-          {% else %}—{% endif %}
+          {{ status.last_completed_cycle.scan_duration_seconds|duration }}
         </span>
       </div>
     {% else %}
