@@ -40,13 +40,12 @@ class UserApiKeyAdmin(DjangoQLAdminMixin, admin.ModelAdmin[UserApiKey]):
     list_display = ["name", "user", "id", "is_active", "last_used", "created_at"]
     list_filter = ["is_active"]
     search_fields = ["name", "id", "user__email"]
-    readonly_fields = ["id", "token_hash", "last_used", "created_at", "updated_at"]
+    readonly_fields = ["id", "last_used", "created_at", "updated_at"]
     fields = [
         "user",
         "name",
         "is_active",
         "id",
-        "token_hash",
         "last_used",
         "created_at",
         "updated_at",
@@ -97,12 +96,11 @@ class ServiceApiKeyAdmin(DjangoQLAdminMixin, admin.ModelAdmin[ServiceApiKey]):
     list_display = ["name", "id", "is_active", "last_used", "created_at"]
     list_filter = ["is_active"]
     search_fields = ["name", "id"]
-    readonly_fields = ["id", "token_hash", "last_used", "created_at", "updated_at"]
+    readonly_fields = ["id", "last_used", "created_at", "updated_at"]
     fields = [
         "name",
         "is_active",
         "id",
-        "token_hash",
         "last_used",
         "created_at",
         "updated_at",

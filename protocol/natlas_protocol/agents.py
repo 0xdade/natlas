@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from natlas_protocol.scan_config import (
+    MasscanConfig,
     NmapConfig,
     NucleiConfig,
     ScreenshotConfig,
@@ -27,6 +28,7 @@ class ClaimResponse(BaseModel):
     target: str
     dns_names: list[DNSName]
     enabled_plugins: list[str]
+    masscan_config: MasscanConfig
     nmap_config: NmapConfig
     nuclei_config: NucleiConfig
     screenshot_config: ScreenshotConfig

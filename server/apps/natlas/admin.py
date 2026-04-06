@@ -6,6 +6,13 @@ from django import forms
 from django.contrib import admin, messages
 from django.http import HttpRequest, HttpResponse
 from django.utils.html import format_html, mark_safe
+from natlas_protocol.scan_config import (
+    MasscanConfig,
+    NmapConfig,
+    NucleiConfig,
+    ScreenshotConfig,
+    WhatWebConfig,
+)
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import JsonLexer
@@ -198,7 +205,6 @@ class AgentAdmin(DjangoQLAdminMixin, admin.ModelAdmin[Agent]):
     search_fields = ["name", "id"]
     readonly_fields = [
         "id",
-        "token_hash",
         "created_at",
         "updated_at",
         "last_used",
@@ -422,11 +428,305 @@ class SSLCertificateAdmin(DjangoQLAdminMixin, admin.ModelAdmin[SSLCertificate]):
         return False
 
 
+class _ListField(forms.CharField):
+    """CharField that serialises/deserialises a list of strings, one per line."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        kwargs.setdefault("widget", forms.Textarea(attrs={"rows": 3, "cols": 40}))
+        kwargs.setdefault("required", False)
+        super().__init__(*args, **kwargs)  # type: ignore[call-arg]
+
+    def prepare_value(self, value: object) -> str:
+        if isinstance(value, list):
+            return "\n".join(str(v) for v in value)
+        return str(value) if value else ""
+
+    def to_python(self, value: object) -> list[str]:
+        raw: str = super().to_python(value)  # type: ignore[assignment,arg-type]
+        return [line.strip() for line in raw.splitlines() if line.strip()]
+
+
+_TIMING_CHOICES = [
+    (0, "T0 — paranoid"),
+    (1, "T1 — sneaky"),
+    (2, "T2 — polite"),
+    (3, "T3 — normal"),
+    (4, "T4 — aggressive"),
+    (5, "T5 — insane"),
+]
+
+_SEVERITY_CHOICES = [
+    ("info", "Info"),
+    ("low", "Low"),
+    ("medium", "Medium"),
+    ("high", "High"),
+    ("critical", "Critical"),
+]
+
+_PLUGIN_CHOICES = [
+    (ScanConfig.Plugin.MASSCAN, "Masscan"),
+    (ScanConfig.Plugin.NMAP, "Nmap"),
+    (ScanConfig.Plugin.NUCLEI, "Nuclei"),
+    (ScanConfig.Plugin.SCREENSHOTS, "Screenshots"),
+    (ScanConfig.Plugin.WHATWEB, "WhatWeb"),
+]
+
+
+class ScanConfigAdminForm(forms.ModelForm[ScanConfig]):
+    # Plugins ----------------------------------------------------------------
+    enabled_plugins = forms.MultipleChoiceField(
+        choices=_PLUGIN_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Enabled plugins",
+    )
+
+    # Masscan ----------------------------------------------------------------
+    masscan_ports = forms.CharField(
+        initial="0-65535",
+        label="Ports",
+        help_text="Port range to scan, e.g. '0-65535' or '80,443,8000-8100'",
+    )
+    masscan_rate = forms.IntegerField(
+        min_value=1,
+        initial=500,
+        label="Rate (packets/sec)",
+    )
+    masscan_wait = forms.IntegerField(
+        min_value=0,
+        initial=5,
+        label="Wait (seconds)",
+        help_text="Seconds to wait after sending last packet before collecting results",
+    )
+
+    # Nmap -------------------------------------------------------------------
+    nmap_ports = forms.CharField(
+        initial="top-100",
+        label="Ports",
+        help_text=(
+            "'top-N' for nmap's top N ports, "
+            "or a literal port spec like '80,443,8000-8100'"
+        ),
+    )
+    nmap_timing_template = forms.TypedChoiceField(
+        choices=_TIMING_CHOICES,
+        coerce=int,
+        initial=4,
+        label="Timing template",
+    )
+    nmap_max_rate = forms.IntegerField(
+        min_value=1,
+        required=False,
+        label="Max rate (packets/sec)",
+        help_text="Leave blank for no limit",
+    )
+    nmap_scripts = _ListField(
+        label="Additional scripts",
+        help_text=(
+            "One nmap script name per line. "
+            "Natlas built-in scripts are always added when DNS names are present."
+        ),
+    )
+
+    # Nuclei -----------------------------------------------------------------
+    nuclei_templates = _ListField(
+        label="Templates",
+        help_text="One Nuclei template path or tag per line (e.g. cves, exposures/)",
+    )
+    nuclei_severity = forms.MultipleChoiceField(
+        choices=_SEVERITY_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        initial=["high", "critical"],
+        label="Minimum severity",
+    )
+    nuclei_timeout = forms.IntegerField(
+        min_value=1,
+        initial=30,
+        label="Timeout (seconds)",
+    )
+
+    # Screenshots ------------------------------------------------------------
+    screenshot_timeout = forms.IntegerField(
+        min_value=1,
+        initial=30,
+        label="Timeout (seconds)",
+    )
+    screenshot_full_page = forms.BooleanField(
+        required=False,
+        label="Capture full page",
+    )
+
+    # WhatWeb ----------------------------------------------------------------
+    whatweb_aggression = forms.TypedChoiceField(
+        choices=[(i, str(i)) for i in range(1, 5)],
+        coerce=int,
+        initial=1,
+        label="Aggression (1-4)",
+        help_text="1 = passive/stealthy, 4 = aggressive",
+    )
+    whatweb_timeout = forms.IntegerField(
+        min_value=1,
+        initial=30,
+        label="Timeout (seconds)",
+    )
+
+    class Meta:
+        model = ScanConfig
+        fields = ["name", "description", "tier", "enabled_plugins"]
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)  # type: ignore[call-arg]
+        if self.instance.pk:
+            masscan = MasscanConfig.model_validate(self.instance.masscan_config)
+            self.initial.update(
+                {
+                    "masscan_ports": masscan.ports,
+                    "masscan_rate": masscan.rate,
+                    "masscan_wait": masscan.wait,
+                }
+            )
+            nmap = NmapConfig.model_validate(self.instance.nmap_config)
+            self.initial.update(
+                {
+                    "nmap_ports": nmap.ports,
+                    "nmap_timing_template": nmap.timing_template,
+                    "nmap_max_rate": nmap.max_rate,
+                    "nmap_scripts": nmap.scripts,
+                }
+            )
+            nuclei = NucleiConfig.model_validate(self.instance.nuclei_config)
+            self.initial.update(
+                {
+                    "nuclei_templates": nuclei.templates,
+                    "nuclei_severity": nuclei.severity,
+                    "nuclei_timeout": nuclei.timeout,
+                }
+            )
+            screenshot = ScreenshotConfig.model_validate(
+                self.instance.screenshot_config
+            )
+            self.initial.update(
+                {
+                    "screenshot_timeout": screenshot.timeout,
+                    "screenshot_full_page": screenshot.full_page,
+                }
+            )
+            whatweb = WhatWebConfig.model_validate(self.instance.whatweb_config)
+            self.initial.update(
+                {
+                    "whatweb_aggression": whatweb.aggression,
+                    "whatweb_timeout": whatweb.timeout,
+                }
+            )
+            if self.instance.tier == ScanConfig.Tier.SYSTEM_DEFAULT:
+                for field in self.fields.values():
+                    field.disabled = True
+
+    def save(self, commit: bool = True) -> ScanConfig:
+        instance = super().save(commit=False)
+        if instance.tier == ScanConfig.Tier.SYSTEM_DEFAULT:
+            # Immutable — never persist changes.
+            return instance
+        cd = self.cleaned_data
+        instance.masscan_config = MasscanConfig(
+            ports=cd["masscan_ports"],
+            rate=cd["masscan_rate"],
+            wait=cd["masscan_wait"],
+        ).model_dump()
+        instance.nmap_config = NmapConfig(
+            ports=cd["nmap_ports"],
+            timing_template=cd["nmap_timing_template"],
+            max_rate=cd.get("nmap_max_rate"),
+            scripts=cd["nmap_scripts"],
+        ).model_dump()
+        instance.nuclei_config = NucleiConfig(
+            templates=cd["nuclei_templates"] or ["cves"],
+            severity=cd["nuclei_severity"],
+            timeout=cd["nuclei_timeout"],
+        ).model_dump()
+        instance.screenshot_config = ScreenshotConfig(
+            timeout=cd["screenshot_timeout"],
+            full_page=bool(cd.get("screenshot_full_page")),
+        ).model_dump()
+        instance.whatweb_config = WhatWebConfig(
+            aggression=cd["whatweb_aggression"],
+            timeout=cd["whatweb_timeout"],
+        ).model_dump()
+        if commit:
+            instance.save()
+        return instance
+
+
 @admin.register(ScanConfig)
 class ScanConfigAdmin(admin.ModelAdmin[ScanConfig]):
+    form = ScanConfigAdminForm
     list_display = ("name", "tier", "enabled_plugins", "updated_at")
     list_filter = ("tier",)
     readonly_fields = ("tier", "created_at", "updated_at")
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": [
+                    "name",
+                    "description",
+                    "tier",
+                    "enabled_plugins",
+                    "created_at",
+                    "updated_at",
+                ]
+            },
+        ),
+        (
+            "Masscan",
+            {
+                "fields": [
+                    "masscan_ports",
+                    "masscan_rate",
+                    "masscan_wait",
+                ]
+            },
+        ),
+        (
+            "Nmap",
+            {
+                "fields": [
+                    "nmap_ports",
+                    "nmap_timing_template",
+                    "nmap_max_rate",
+                    "nmap_scripts",
+                ]
+            },
+        ),
+        (
+            "Nuclei",
+            {
+                "fields": [
+                    "nuclei_templates",
+                    "nuclei_severity",
+                    "nuclei_timeout",
+                ]
+            },
+        ),
+        (
+            "Screenshots",
+            {
+                "fields": [
+                    "screenshot_timeout",
+                    "screenshot_full_page",
+                ]
+            },
+        ),
+        (
+            "WhatWeb",
+            {
+                "fields": [
+                    "whatweb_aggression",
+                    "whatweb_timeout",
+                ]
+            },
+        ),
+    ]
 
     def get_readonly_fields(
         self, request: HttpRequest, obj: ScanConfig | None = None
@@ -434,6 +734,13 @@ class ScanConfigAdmin(admin.ModelAdmin[ScanConfig]):
         if obj and obj.tier == ScanConfig.Tier.SYSTEM_DEFAULT:
             return [f.name for f in obj._meta.fields]
         return list(self.readonly_fields)
+
+    def has_change_permission(
+        self, request: HttpRequest, obj: ScanConfig | None = None
+    ) -> bool:
+        if obj and obj.tier == ScanConfig.Tier.SYSTEM_DEFAULT:
+            return False
+        return super().has_change_permission(request, obj)
 
     def has_delete_permission(
         self, request: HttpRequest, obj: ScanConfig | None = None

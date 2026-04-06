@@ -22,15 +22,16 @@ class MasscanPlugin(Plugin):
     def run(self, ctx: ScanContext) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             out_path = Path(tmpdir) / "masscan.txt"
+            cfg = ctx.masscan_config
             cmd = [
                 "masscan",
                 ctx.target,
                 "-p",
-                "0-65535",
+                cfg.ports,
                 "--rate",
-                "500",
+                str(cfg.rate),
                 "--wait",
-                "5",
+                str(cfg.wait),
                 "-oL",
                 str(out_path),
             ]

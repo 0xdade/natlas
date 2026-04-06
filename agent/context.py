@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from natlas_protocol.agents import DNSName
-from natlas_protocol.scan_config import NmapConfig, WhatWebConfig
+from natlas_protocol.scan_config import MasscanConfig, NmapConfig, WhatWebConfig
 
 
 @dataclass
@@ -42,6 +42,7 @@ class ScanContext:
     task_id: uuid.UUID
     dns_names: list[DNSName] = field(default_factory=list)
     enabled_plugins: list[str] = field(default_factory=list)
+    masscan_config: MasscanConfig = field(default_factory=MasscanConfig)
     nmap_config: NmapConfig = field(default_factory=NmapConfig)
     whatweb_config: WhatWebConfig = field(default_factory=WhatWebConfig)
     scan_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

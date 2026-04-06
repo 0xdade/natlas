@@ -14,6 +14,7 @@ class ScanConfig(models.Model):
         NAMED = "named", "Named"
 
     class Plugin(models.TextChoices):
+        MASSCAN = "masscan", "Masscan"
         NMAP = "nmap", "Nmap"
         NUCLEI = "nuclei", "Nuclei"
         SCREENSHOTS = "screenshots", "Screenshots"
@@ -35,6 +36,7 @@ class ScanConfig(models.Model):
     # Per-plugin configuration. Validated against the corresponding Pydantic
     # schema in apps.natlas.schemas.scan_config. Missing keys fall back to
     # the Pydantic model's defaults when the config is served to the agent.
+    masscan_config = models.JSONField(default=dict, blank=True)
     nmap_config = models.JSONField(default=dict, blank=True)
     nuclei_config = models.JSONField(default=dict, blank=True)
     screenshot_config = models.JSONField(default=dict, blank=True)

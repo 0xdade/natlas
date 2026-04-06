@@ -48,6 +48,7 @@ def main() -> None:
                 task_id=claim.task_id,
                 dns_names=claim.dns_names,
                 enabled_plugins=claim.enabled_plugins,
+                masscan_config=claim.masscan_config,
                 nmap_config=claim.nmap_config,
                 whatweb_config=claim.whatweb_config,
                 scan_start=datetime.now(timezone.utc),

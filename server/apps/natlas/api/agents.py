@@ -21,6 +21,7 @@ from apps.natlas.schemas.agents import (
     SubmitResultSchema,
 )
 from apps.natlas.schemas.scan_config import (
+    MasscanConfig,
     NmapConfig,
     NucleiConfig,
     ScreenshotConfig,
@@ -71,6 +72,7 @@ def claim_task(request: HttpRequest) -> tuple[int, ClaimResponseSchema | None]:
         target=str(task.target),
         dns_names=dns_names,
         enabled_plugins=config.enabled_plugins,
+        masscan_config=MasscanConfig.model_validate(config.masscan_config),
         nmap_config=NmapConfig.model_validate(config.nmap_config),
         nuclei_config=NucleiConfig.model_validate(config.nuclei_config),
         screenshot_config=ScreenshotConfig.model_validate(config.screenshot_config),

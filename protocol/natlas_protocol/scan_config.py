@@ -29,3 +29,9 @@ class ScreenshotConfig(BaseModel):
 class WhatWebConfig(BaseModel):
     aggression: int = Field(default=1, ge=1, le=4)
     timeout: int = Field(default=30, gt=0)
+
+
+class MasscanConfig(BaseModel):
+    ports: str = "0-65535"
+    rate: int = Field(default=500, ge=1)
+    wait: int = Field(default=5, ge=0)
