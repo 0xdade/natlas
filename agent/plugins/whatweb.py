@@ -85,11 +85,13 @@ class WhatWebPlugin(Plugin):
         with tempfile.TemporaryDirectory() as tmpdir:
             out_file = Path(tmpdir) / "whatweb.json"
 
+            ww_cfg = ctx.whatweb_config
             cmd = [
                 "whatweb",
                 f"--log-json={out_file}",
                 "--no-errors",
-                "--aggression=3",
+                f"--aggression={ww_cfg.aggression}",
+                f"--read-timeout={ww_cfg.timeout}",
                 *urls,
             ]
 

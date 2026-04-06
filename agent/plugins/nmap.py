@@ -26,6 +26,19 @@ def _count_open_ports(xml: str) -> int:
         return -1
 
 
+def _port_args(config_ports: str, discovered: list[tuple[str, str]]) -> list[str]:
+    """Return the nmap port-selection arguments.
+
+    Masscan-discovered ports take priority.  Otherwise the config value is used:
+    'top-N' maps to --top-ports N; anything else is passed verbatim as -p <spec>.
+    """
+    if discovered:
+        return ["-Pn", "-p", _build_port_spec(discovered)]
+    if config_ports.startswith("top-"):
+        return ["--top-ports", config_ports[4:]]
+    return ["-p", config_ports]
+
+
 def _build_port_spec(ports: list[tuple[str, str]]) -> str:
     """Convert (protocol, port) pairs to an nmap -p argument string.
 
@@ -49,28 +62,37 @@ class NmapPlugin(Plugin):
         with tempfile.TemporaryDirectory() as tmpdir:
             base = str(Path(tmpdir) / f"scan_{ctx.scan_id}")
 
-            extra_args: list[str] = []
-            if ctx.masscan.discovered_ports:
-                extra_args = [
-                    "-Pn",
-                    "-p",
-                    _build_port_spec(ctx.masscan.discovered_ports),
-                ]
+            nmap_cfg = ctx.nmap_config
+            port_args = _port_args(nmap_cfg.ports, ctx.masscan.discovered_ports)
 
             hostnames = [
                 d.name for d in ctx.dns_names if d.record_type in ("A", "AAAA")
             ]
+
+            # Build the --script argument: natlas scripts (when hostnames present)
+            # combined with any scripts requested by the scan config.
+            script_names: list[str] = list(nmap_cfg.scripts)
+            script_args: list[str] = []
             if hostnames:
-                extra_args += [
-                    "--script",
-                    "natlas-ssl-cert,natlas-http-title",
+                script_names = ["natlas-ssl-cert", "natlas-http-title", *script_names]
+                script_args = [
                     "--script-args",
                     "natlas.hostnames=" + "|".join(hostnames),
                 ]
 
+            timing_args = [f"-T{nmap_cfg.timing_template}"]
+            rate_args = (
+                ["--max-rate", str(nmap_cfg.max_rate)] if nmap_cfg.max_rate else []
+            )
+            script_flag = ["--script", ",".join(script_names)] if script_names else []
+
             cmd = [
                 "nmap",
-                *extra_args,
+                *port_args,
+                *timing_args,
+                *rate_args,
+                *script_flag,
+                *script_args,
                 "-sV",
                 "-sC",
                 "-sT",

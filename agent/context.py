@@ -13,6 +13,20 @@ class DNSName:
 
 
 @dataclass
+class NmapConfig:
+    ports: str = "top-100"
+    timing_template: int = 4
+    max_rate: int | None = None
+    scripts: list[str] = field(default_factory=list)
+
+
+@dataclass
+class WhatWebConfig:
+    aggression: int = 1
+    timeout: int = 30
+
+
+@dataclass
 class MasscanContext:
     discovered_ports: list[tuple[str, str]] = field(default_factory=list)
 
@@ -46,6 +60,8 @@ class ScanContext:
     task_id: uuid.UUID
     dns_names: list[DNSName] = field(default_factory=list)
     enabled_plugins: list[str] = field(default_factory=list)
+    nmap_config: NmapConfig = field(default_factory=NmapConfig)
+    whatweb_config: WhatWebConfig = field(default_factory=WhatWebConfig)
     scan_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     scan_stop: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
