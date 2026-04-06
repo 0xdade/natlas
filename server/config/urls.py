@@ -37,7 +37,7 @@ def on_session_not_authenticated(
 urlpatterns: list[URLPattern | URLResolver] = [
     path("admin/", admin.site.urls),
     path("oidc/", include("mozilla_django_oidc.urls")),
-    path("auth/", include("apps.natlas.urls")),
+    path("auth/", include("apps.custom_auth.urls")),
     path("api/", api.urls),
     path("", web.urls),
 ]
