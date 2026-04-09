@@ -13,7 +13,7 @@ from django.http import (
     HttpResponseNotModified,
     JsonResponse,
 )
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.utils.http import http_date
 from djangoql.exceptions import DjangoQLError
 from djangoql.queryset import apply_search
@@ -216,3 +216,25 @@ def screenshots(
     paginator = Paginator(qs, _SCREENSHOTS_PER_PAGE)
     results_page = paginator.get_page(page)
     return 200, ScreenshotsResponseSchema(results=results_page)
+
+
+@router.get("/random/")
+def random_host(request: HttpRequest) -> HttpResponse:
+    latest_ids = Subquery(
+        ScanResult.objects.order_by("target", "-scanned_at")
+        .distinct("target")
+        .values("id")
+    )
+    has_open_port = Exists(
+        Port.objects.filter(scan_result=OuterRef("pk"), state="open")
+    )
+    result = (
+        ScanResult.objects.filter(id__in=latest_ids)
+        .filter(has_open_port)
+        .order_by("?")
+        .values("target")
+        .first()
+    )
+    if result is None:
+        raise Http404
+    return redirect("web:host_detail", target=result["target"])

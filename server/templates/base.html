@@ -192,6 +192,7 @@
     <a href="{% url 'web:dashboard' %}">Dashboard</a>
     <a href="{% url 'web:hosts' %}">Hosts</a>
     <a href="{% url 'web:screenshots' %}">Screenshots</a>
+    <a href="{% url 'web:random_host' %}">Random</a>
     {% if request.user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
     <span style="margin-left:auto;display:flex;align-items:center;gap:1rem;">
       <button class="cmdkbar-trigger" id="cmdkbar-open" type="button" aria-label="Open search">
