@@ -94,7 +94,6 @@ class NmapPlugin(Plugin):
                 *script_flag,
                 *script_args,
                 "-sV",
-                "-sC",
                 "-sT",
                 *(["-d"] if config.DEBUG else []),
                 "-oA",

@@ -50,6 +50,7 @@ def main() -> None:
                 enabled_plugins=claim.enabled_plugins,
                 masscan_config=claim.masscan_config,
                 nmap_config=claim.nmap_config,
+                screenshot_config=claim.screenshot_config,
                 whatweb_config=claim.whatweb_config,
                 scan_start=datetime.now(timezone.utc),
             )
@@ -78,6 +79,14 @@ def main() -> None:
                 log.info("Submitted results for %s (task %s)", ctx.target, ctx.task_id)
             except Exception:
                 log.exception("Failed to submit results for task %s", ctx.task_id)
+                continue
+
+            for screenshot in ctx.screenshots.taken:
+                try:
+                    client.upload_screenshot(ctx.scan_id, screenshot)
+                    log.info("Uploaded screenshot for %s", screenshot.url)
+                except Exception:
+                    log.exception("Failed to upload screenshot for %s", screenshot.url)
 
 
 if __name__ == "__main__":

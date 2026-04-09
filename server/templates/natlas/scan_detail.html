@@ -62,6 +62,36 @@
     margin-bottom: 1rem;
     display: inline-block;
   }
+
+  .screenshots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .screenshot-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .screenshot-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .screenshot-label {
+    padding: 0.4rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 </style>
 {% endblock %}
 
@@ -97,6 +127,22 @@
     <span class="meta-value">{{ scan.port_count }}</span>
   </div>
 </div>
+
+{% with screenshots=scan.screenshots.all %}
+{% if screenshots %}
+<p class="section-heading">Screenshots</p>
+<div class="screenshots-grid">
+  {% for s in screenshots %}
+  <div class="screenshot-card">
+    <a href="{{ s.url }}" target="_blank" rel="noopener">
+      <img src="{% url 'web:screenshot_proxy' target=target scan_id=scan.id screenshot_id=s.id %}" loading="lazy" alt="{{ s.url }}" />
+    </a>
+    <div class="screenshot-label" title="{{ s.url }}">{{ s.url }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
 
 <p class="section-heading">Ports</p>
 <c-port-table :scan_result="scan" />

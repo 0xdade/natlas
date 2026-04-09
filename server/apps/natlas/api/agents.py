@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import uuid
+from urllib.parse import urlparse
+
 import uuid6
 from django.db import transaction
 from django.http import HttpRequest
@@ -11,6 +14,7 @@ from apps.natlas.models.agent import Agent
 from apps.natlas.models.dns import DNSRecord
 from apps.natlas.models.port import Port, Script
 from apps.natlas.models.scan import ScanResult
+from apps.natlas.models.screenshot import Screenshot
 from apps.natlas.models.ssl_certificate import SSLCertificate
 from apps.natlas.models.task import ScanTask
 from apps.natlas.schemas.agents import (
@@ -27,6 +31,7 @@ from apps.natlas.schemas.scan_config import (
     ScreenshotConfig,
     WhatWebConfig,
 )
+from apps.natlas.services import storage
 from apps.natlas.services.nmap_parser import parse_xml
 from apps.natlas.services.scope import get_tags_for_target
 
@@ -167,3 +172,34 @@ def fail_task(request: HttpRequest, payload: FailTaskSchema) -> tuple[int, dict]
         task.save(update_fields=["status", "completed_at", "updated_at"])
 
     return 200, {"detail": "Task marked as failed"}
+
+
+@router.post("/screenshots/", response={200: dict, 404: dict})
+def upload_screenshot(
+    request: HttpRequest,
+    scan_id: uuid.UUID,
+    port: int,
+    scheme: str,
+    url: str,
+) -> tuple[int, dict]:
+    """Accept a raw PNG screenshot from the agent and store it in S3."""
+    agent: Agent = request.auth  # type: ignore[assignment]
+
+    scan_result = ScanResult.objects.filter(id=scan_id, agent=agent).first()
+    if scan_result is None:
+        return 404, {"detail": "Scan result not found"}
+
+    host = urlparse(url).hostname or "unknown"
+    data: bytes = request.body
+    s3_key = f"screenshots/{scan_id}/{scheme}-{port}-{host}.png"
+    storage.upload(s3_key, data, content_type="image/png")
+
+    Screenshot.objects.create(
+        scan_result=scan_result,
+        port=port,
+        scheme=scheme,
+        url=url,
+        s3_key=s3_key,
+    )
+
+    return 200, {"detail": "OK"}

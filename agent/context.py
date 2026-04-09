@@ -5,7 +5,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from natlas_protocol.agents import DNSName
-from natlas_protocol.scan_config import MasscanConfig, NmapConfig, WhatWebConfig
+from natlas_protocol.scan_config import (
+    MasscanConfig,
+    NmapConfig,
+    ScreenshotConfig,
+    WhatWebConfig,
+)
 
 
 @dataclass
@@ -19,6 +24,19 @@ class NmapContext:
     xml: str = ""
     gnmap: str = ""
     open_port_count: int = 0
+
+
+@dataclass
+class ScreenshotResult:
+    port: int
+    scheme: str  # "http" or "https"
+    url: str
+    data: bytes  # raw PNG bytes
+
+
+@dataclass
+class ScreenshotsContext:
+    taken: list[ScreenshotResult] = field(default_factory=list)
 
 
 @dataclass
@@ -44,6 +62,7 @@ class ScanContext:
     enabled_plugins: list[str] = field(default_factory=list)
     masscan_config: MasscanConfig = field(default_factory=MasscanConfig)
     nmap_config: NmapConfig = field(default_factory=NmapConfig)
+    screenshot_config: ScreenshotConfig = field(default_factory=ScreenshotConfig)
     whatweb_config: WhatWebConfig = field(default_factory=WhatWebConfig)
     scan_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     scan_stop: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -53,4 +72,5 @@ class ScanContext:
 
     masscan: MasscanContext = field(default_factory=MasscanContext)
     nmap: NmapContext = field(default_factory=NmapContext)
+    screenshots: ScreenshotsContext = field(default_factory=ScreenshotsContext)
     whatweb: WhatWebContext = field(default_factory=WhatWebContext)

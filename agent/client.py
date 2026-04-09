@@ -6,7 +6,7 @@ import httpx
 from natlas_protocol.agents import FailTask, SubmitResult
 
 from agent import config
-from agent.context import ScanContext
+from agent.context import ScanContext, ScreenshotResult
 from agent.plugins.whatweb import serialize as serialize_whatweb
 
 
@@ -46,6 +46,23 @@ class ServerClient:
         resp = self._http.post(
             "/api/agents/submit/",
             json=payload.model_dump(mode="json"),
+        )
+        resp.raise_for_status()
+
+    def upload_screenshot(
+        self, scan_id: uuid.UUID, screenshot: ScreenshotResult
+    ) -> None:
+        """Upload a single PNG screenshot to the server."""
+        resp = self._http.post(
+            "/api/agents/screenshots/",
+            params={
+                "scan_id": str(scan_id),
+                "port": screenshot.port,
+                "scheme": screenshot.scheme,
+                "url": screenshot.url,
+            },
+            content=screenshot.data,
+            headers={"Content-Type": "image/png"},
         )
         resp.raise_for_status()
 

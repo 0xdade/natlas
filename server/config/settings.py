@@ -254,6 +254,13 @@ if DEBUG:
         "schedule": 2.0,  # seconds
     }
 
+# S3-compatible object storage (used for screenshots)
+S3_ENDPOINT: str = os.environ.get("S3_ENDPOINT", "")
+S3_REGION: str = os.environ.get("S3_REGION", "us-east-1")
+S3_BUCKET: str = os.environ.get("S3_BUCKET", "natlas")
+S3_ACCESS_KEY_ID: str = os.environ.get("S3_ACCESS_KEY_ID", "")
+S3_SECRET_ACCESS_KEY: str = os.environ.get("S3_SECRET_ACCESS_KEY", "")
+
 # Plugins the server asks agents to run. Agents only run plugins in this list
 # (provided the tool is also installed locally on the agent).
 # Override via comma-separated env var: NATLAS_ENABLED_PLUGINS=nmap,masscan,whatweb

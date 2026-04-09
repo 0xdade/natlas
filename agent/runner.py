@@ -7,6 +7,7 @@ from agent.context import ScanContext
 from agent.plugins import Plugin
 from agent.plugins.masscan import MasscanPlugin
 from agent.plugins.nmap import NmapPlugin
+from agent.plugins.screenshots import ScreenshotsPlugin
 from agent.plugins.whatweb import WhatWebPlugin
 
 log = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ class PluginRunner:
         self._plugins: list[Plugin] = [
             MasscanPlugin(),
             NmapPlugin(),
+            ScreenshotsPlugin(),
             WhatWebPlugin(),
         ]
 

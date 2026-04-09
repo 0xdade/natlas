@@ -3,36 +3,38 @@
 # DO NOT USE THIS IN PRODUCTION! #
 ##################################
 services:
-  garage:
-    image: dxflrs/garage:v1.3.1
+  rustfs:
+    image: rustfs/rustfs:latest
     ports:
-      - "3900:3900" # S3 API
-      - "3901:3901" # Admin API
+      - "9002:9000" # S3 API (host 9002 avoids conflict with authentik on 9000)
+      - "9003:9001" # Web console
     volumes:
-      - ./dev/.garage-dev.toml:/etc/garage.toml
-      - garage_data:/var/lib/garage
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3901/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  garage-init:
-    image: alpine:3.21
-    networks:
-      - backend
+      - rustfs_data:/data
     environment:
-      - S3_BUCKET=natlas
-      - S3_ACCESS_KEY_ID=natlas-dev-key-id-do-not-use
-      - S3_SECRET_ACCESS_KEY=natlas-dev-secret-key-do-not-use
-    volumes:
-      - ./dev/.garage-init.sh:/garage-init.sh:ro
+      - RUSTFS_ACCESS_KEY=natlas-dev-key-id-do-not-use
+      - RUSTFS_SECRET_KEY=natlas-dev-secret-key-do-not-use
+      - RUSTFS_CONSOLE_ENABLE=true
+    networks:
+      - backend
+    command: /data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rustfs-init:
+    image: minio/mc:latest
+    networks:
+      - backend
     depends_on:
-      garage:
-        condition: service_healthy
-    command: ["sh", "-c", "apk add -q --no-cache curl jq && sh /garage-init.sh"]
+      rustfs:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set rustfs http://rustfs:9000 natlas-dev-key-id-do-not-use natlas-dev-secret-key-do-not-use &&
+      mc mb --ignore-existing rustfs/natlas
+      "
 
   postgres:
     image: postgres:18.3
@@ -183,7 +185,7 @@ services:
       - DEFAULT_FROM_EMAIL=noreply@natlas.test
       - OTEL_ENABLE=True
       - OTEL_COLLECTOR=otel:4317
-      - S3_ENDPOINT=http://garage:3900
+      - S3_ENDPOINT=http://rustfs:9000
       - S3_REGION=us-east-1
       - S3_BUCKET=natlas
       - S3_ACCESS_KEY_ID=natlas-dev-key-id-do-not-use
@@ -211,6 +213,8 @@ services:
         condition: service_started
       maildev:
         condition: service_started
+      rustfs-init:
+        condition: service_completed_successfully
 
   celery-worker:
     build:
@@ -299,4 +303,4 @@ networks:
 
 volumes:
   postgres-data:
-  garage_data:
+  rustfs_data:

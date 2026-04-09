@@ -6,8 +6,15 @@ from typing import Any, Literal
 
 from django.core.paginator import Page, Paginator
 from django.db.models import Count, Exists, OuterRef, Q, Subquery
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotModified,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404
+from django.utils.http import http_date
 from djangoql.exceptions import DjangoQLError
 from djangoql.queryset import apply_search
 from djangoql.serializers import DjangoQLSchemaSerializer
@@ -16,7 +23,9 @@ from ninja import Router
 from apps.core.schemas import TemplateSchema
 from apps.natlas.models.port import Port
 from apps.natlas.models.scan import ScanResult
+from apps.natlas.models.screenshot import Screenshot
 from apps.natlas.search import HostSearchSchema
+from apps.natlas.services import storage
 
 _RESULTS_PER_PAGE = 25
 
@@ -103,7 +112,7 @@ def host_detail(
     history = list(
         ScanResult.objects.filter(target=target)
         .select_related("agent")
-        .prefetch_related("ports__scripts")
+        .prefetch_related("ports__scripts", "screenshots")
         .order_by("-scanned_at")
     )
     if not history:
@@ -126,7 +135,9 @@ def scan_detail(
     request: HttpRequest, target: str, scan_id: uuid.UUID
 ) -> tuple[int, ScanDetailResponseSchema]:
     scan = get_object_or_404(
-        ScanResult.objects.select_related("agent").prefetch_related("ports__scripts"),
+        ScanResult.objects.select_related("agent").prefetch_related(
+            "ports__scripts", "screenshots"
+        ),
         target=target,
         id=scan_id,
     )
@@ -159,3 +170,30 @@ def scan_raw(
         raise Http404
 
     return HttpResponse(content, content_type="text/plain; charset=utf-8")
+
+
+@router.get("/hosts/{target}/{scan_id}/screenshots/{screenshot_id}/")
+def screenshot_proxy(
+    request: HttpRequest,
+    target: str,
+    scan_id: uuid.UUID,
+    screenshot_id: uuid.UUID,
+) -> HttpResponse:
+    screenshot = get_object_or_404(
+        Screenshot,
+        id=screenshot_id,
+        scan_result__id=scan_id,
+        scan_result__target=target,
+    )
+    if_none_match = request.headers.get("If-None-Match", "")
+    try:
+        obj = storage.get_object(screenshot.s3_key, if_none_match=if_none_match)
+    except Exception as err:
+        raise Http404 from err
+    if obj is None:
+        return HttpResponseNotModified()
+    response = HttpResponse(obj.data, content_type="image/png")
+    response["ETag"] = obj.etag
+    response["Last-Modified"] = http_date(obj.last_modified.timestamp())
+    response["Cache-Control"] = "private, max-age=3600"
+    return response
