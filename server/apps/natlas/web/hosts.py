@@ -28,6 +28,7 @@ from apps.natlas.search import HostSearchSchema
 from apps.natlas.services import storage
 
 _RESULTS_PER_PAGE = 25
+_SCREENSHOTS_PER_PAGE = 25
 
 router = Router()
 
@@ -197,3 +198,21 @@ def screenshot_proxy(
     response["Last-Modified"] = http_date(obj.last_modified.timestamp())
     response["Cache-Control"] = "private, max-age=3600"
     return response
+
+
+class ScreenshotsResponseSchema(TemplateSchema):
+    template_name: str = "natlas/screenshots.html"
+    results: Page[Screenshot]
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+@router.get("/screenshots/", response={200: ScreenshotsResponseSchema})
+def screenshots(
+    request: HttpRequest, page: int = 1
+) -> tuple[int, ScreenshotsResponseSchema]:
+    qs = Screenshot.objects.select_related("scan_result").order_by("-taken_at")
+    paginator = Paginator(qs, _SCREENSHOTS_PER_PAGE)
+    results_page = paginator.get_page(page)
+    return 200, ScreenshotsResponseSchema(results=results_page)

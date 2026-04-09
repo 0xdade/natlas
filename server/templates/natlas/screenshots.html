@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Screenshots — Natlas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+  }
+
+  .screenshots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .screenshot-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screenshot-card a.screenshot-img-link {
+    display: block;
+  }
+
+  .screenshot-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .screenshot-footer {
+    padding: 0.5rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .screenshot-url {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .screenshot-meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+  }
+
+  .empty-state {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: 2rem 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<p class="page-heading">Screenshots</p>
+
+{% if results.object_list %}
+<div class="screenshots-grid">
+  {% for s in results %}
+  <div class="screenshot-card">
+    <a class="screenshot-img-link" href="{% url 'web:scan_detail' target=s.scan_result.target scan_id=s.scan_result.id %}">
+      <img src="{% url 'web:screenshot_proxy' target=s.scan_result.target scan_id=s.scan_result.id screenshot_id=s.id %}" loading="lazy" alt="{{ s.url }}" />
+    </a>
+    <div class="screenshot-footer">
+      <div class="screenshot-url" title="{{ s.url }}">{{ s.url }}</div>
+      <div class="screenshot-meta">{{ s.scan_result.target }} &middot; {{ s.taken_at|date:"Y-m-d H:i" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<c-pagination :page="results" />
+{% else %}
+<p class="empty-state">No screenshots yet.</p>
+{% endif %}
+{% endblock %}
